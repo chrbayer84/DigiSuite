@@ -1,8 +1,101 @@
 import AVFoundation
 import Combine
+import CoreLocation
 import PhotosUI
 import SwiftUI
 import UIKit
+
+struct TextOverlayConfig: Equatable {
+    var callsign = ""
+    var gridsquare = ""
+    var message = ""
+    var color: Color = .white
+    var fontName = "Menlo"
+    var fontSize: Double = 14
+    var style: OverlayFontStyle = .bold
+    var headerPosition = CGPoint(x: 0.04, y: 0.04)
+
+    static let fontOptions = ["Menlo", "Courier", "Courier New", "Helvetica", "Georgia"]
+
+    func font() -> UIFont {
+        let size = CGFloat(fontSize)
+        let base = UIFont(name: fontName, size: size)
+            ?? UIFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        var traits: UIFontDescriptor.SymbolicTraits = []
+        if style == .bold || style == .boldItalic { traits.insert(.traitBold) }
+        if style == .italic || style == .boldItalic { traits.insert(.traitItalic) }
+        guard !traits.isEmpty, let descriptor = base.fontDescriptor.withSymbolicTraits(traits) else { return base }
+        return UIFont(descriptor: descriptor, size: size)
+    }
+}
+
+enum OverlayFontStyle: String, CaseIterable {
+    case regular = "Regular"
+    case bold = "Bold"
+    case italic = "Italic"
+    case boldItalic = "Bold Italic"
+}
+
+final class LocationService: NSObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    private var completion: ((Result<String, Error>) -> Void)?
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyKilometer
+    }
+
+    func requestGridSquare(completion: @escaping (Result<String, Error>) -> Void) {
+        self.completion = completion
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        case .denied, .restricted:
+            finish(.failure(LocationError.permissionDenied))
+        @unknown default:
+            finish(.failure(LocationError.permissionDenied))
+        }
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        case .denied, .restricted:
+            finish(.failure(LocationError.permissionDenied))
+        default:
+            break
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        let grid = Maidenhead.gridSquare(latitude: location.coordinate.latitude,
+                                         longitude: location.coordinate.longitude)
+        finish(.success(grid))
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        finish(.failure(error))
+    }
+
+    private func finish(_ result: Result<String, Error>) {
+        completion?(result)
+        completion = nil
+    }
+}
+
+enum LocationError: LocalizedError {
+    case permissionDenied
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied: return "Location permission is required to determine your grid square."
+        }
+    }
+}
 
 @MainActor
 final class RadioModemViewModel: ObservableObject {
@@ -30,12 +123,15 @@ final class RadioModemViewModel: ObservableObject {
     @Published var gridsquare: String = UserDefaults.standard.string(forKey: "operatorGridsquare") ?? "" {
         didSet { UserDefaults.standard.set(gridsquare, forKey: "operatorGridsquare") }
     }
+    @Published var isResolvingLocation = false
+    @Published var locationError: String?
 
     let history = RadioHistoryStore()
     private let capture = RadioAudioCaptureService()
     private let player = RadioAudioPlayer()
     private let transmitter = Robot36Transmitter()
     private let receivePipeline = RadioReceivePipeline()
+    private let locationService = LocationService()
     private var activePictureID: UUID?
     private var imageBytes = Data(repeating: 0, count: 320 * 240 * 4)
 
@@ -121,10 +217,28 @@ final class RadioModemViewModel: ObservableObject {
         status = listening ? .listening : .idle
     }
 
-    func transmit(image: UIImage, message: String) {
+    func useCurrentLocation() {
+        guard !isResolvingLocation else { return }
+        isResolvingLocation = true
+        locationError = nil
+        locationService.requestGridSquare { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isResolvingLocation = false
+                switch result {
+                case .success(let grid):
+                    self.gridsquare = grid
+                case .failure(let error):
+                    self.locationError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func transmit(image: UIImage, overlay: TextOverlayConfig) {
         guard selectedMode == .robot36, !transmitting else { return }
         if listening { stopReceive() }
-        guard let rgba = Self.overlayRGBA(base: image, callsign: callsign, gridsquare: gridsquare, message: message) else {
+        guard let rgba = Self.overlayRGBA(base: image, config: overlay) else {
             errorMessage = "Could not prepare the selected image for Robot 36."
             return
         }
@@ -208,16 +322,16 @@ final class RadioModemViewModel: ObservableObject {
         return Data(bytes)
     }
 
-    /// Composes the transmit image with a callsign/gridsquare header and a free-form
-    /// message, returning Robot 36-sized RGBA bytes.
-    private static func overlayRGBA(base: UIImage, callsign: String, gridsquare: String, message: String) -> Data? {
+    /// Composes the transmit image with the configured overlay text, returning
+    /// Robot 36-sized RGBA bytes.
+    private static func overlayRGBA(base: UIImage, config: TextOverlayConfig) -> Data? {
         let width = 320
         let height = 240
-        let header = [callsign.trimmingCharacters(in: .whitespaces),
-                     gridsquare.trimmingCharacters(in: .whitespaces)]
+        let header = [config.callsign.trimmingCharacters(in: .whitespaces),
+                      config.gridsquare.trimmingCharacters(in: .whitespaces)]
             .filter { !$0.isEmpty }.joined(separator: " ")
-        let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !header.isEmpty || !trimmedMessage.isEmpty else {
+        let message = config.message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !header.isEmpty || !message.isEmpty else {
             return rgbaData(base, width: width, height: height)
         }
         let size = CGSize(width: width, height: height)
@@ -225,42 +339,47 @@ final class RadioModemViewModel: ObservableObject {
         format.scale = 1
         format.opaque = true
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let textColor = UIColor(config.color)
+        let headerFont = config.font()
+        let messageFont = UIFont(descriptor: config.font().fontDescriptor, size: max(9, CGFloat(config.fontSize) - 2))
         let composed = renderer.image { context in
             UIColor.black.setFill()
             context.fill(CGRect(origin: .zero, size: size))
             base.draw(in: CGRect(origin: .zero, size: size))
-            var nextY: CGFloat = 4
+            let origin = CGPoint(x: config.headerPosition.x * CGFloat(width),
+                                 y: config.headerPosition.y * CGFloat(height))
+            var nextY = origin.y
             if !header.isEmpty {
-                let attrs: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.monospacedSystemFont(ofSize: 15, weight: .bold),
-                    .foregroundColor: UIColor.white
-                ]
+                let attrs: [NSAttributedString.Key: Any] = [.font: headerFont, .foregroundColor: textColor]
                 let textSize = header.size(withAttributes: attrs)
                 context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.6).cgColor)
-                context.cgContext.fill(CGRect(x: 2, y: 2, width: textSize.width + 8, height: textSize.height + 4))
-                header.draw(at: CGPoint(x: 6, y: 4), withAttributes: attrs)
-                nextY = 4 + textSize.height + 4
+                context.cgContext.fill(CGRect(x: origin.x - 4, y: origin.y - 2,
+                                              width: textSize.width + 8, height: textSize.height + 4))
+                header.draw(at: origin, withAttributes: attrs)
+                nextY = origin.y + textSize.height + 4
             }
-            if !trimmedMessage.isEmpty {
-                let attrs: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .regular),
-                    .foregroundColor: UIColor.white
-                ]
-                let availableWidth = CGFloat(width) - 8
+            if !message.isEmpty {
+                let attrs: [NSAttributedString.Key: Any] = [.font: messageFont, .foregroundColor: textColor]
+                let availableWidth = CGFloat(width) - max(4, origin.x)
                 let bounding = CGSize(width: availableWidth, height: CGFloat(height) - nextY)
-                let messageRect = trimmedMessage.boundingRect(with: bounding,
-                                                              options: [.usesLineFragmentOrigin, .usesFontLeading],
-                                                              attributes: attrs, context: nil)
+                let messageRect = message.boundingRect(with: bounding,
+                                                       options: [.usesLineFragmentOrigin, .usesFontLeading],
+                                                       attributes: attrs, context: nil)
                 context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.6).cgColor)
-                context.cgContext.fill(CGRect(x: 2, y: nextY - 2,
-                                              width: min(messageRect.width + 8, availableWidth + 4),
+                context.cgContext.fill(CGRect(x: origin.x - 4, y: nextY - 2,
+                                              width: min(messageRect.width + 8, availableWidth),
                                               height: messageRect.height + 4))
-                trimmedMessage.draw(with: CGRect(x: 6, y: nextY, width: availableWidth, height: CGFloat(height) - nextY),
-                                    options: [.usesLineFragmentOrigin, .usesFontLeading],
-                                    attributes: attrs, context: nil)
+                message.draw(with: CGRect(x: origin.x, y: nextY, width: availableWidth, height: CGFloat(height) - nextY),
+                             options: [.usesLineFragmentOrigin, .usesFontLeading],
+                             attributes: attrs, context: nil)
             }
         }
         return rgbaData(composed, width: width, height: height)
+    }
+
+    static func overlayPreview(base: UIImage, config: TextOverlayConfig) -> UIImage? {
+        guard let rgba = overlayRGBA(base: base, config: config) else { return nil }
+        return makeImage(rgba, width: 320, height: 240)
     }
 
     static func makeImage(_ data: Data, width: Int, height: Int) -> UIImage? {
@@ -431,7 +550,13 @@ private struct TransmitTab: View {
     @ObservedObject var model: RadioModemViewModel
     @State private var selection: PhotosPickerItem?
     @State private var image: UIImage?
-    @State private var message = ""
+    @State private var overlay = TextOverlayConfig()
+    @State private var showOverlayEditor = false
+
+    private var preview: UIImage? {
+        guard let image else { return nil }
+        return RadioModemViewModel.overlayPreview(base: image, config: overlay)
+    }
 
     var body: some View {
         NavigationStack {
@@ -447,18 +572,27 @@ private struct TransmitTab: View {
                     PhotosPicker(selection: $selection, matching: .images) {
                         Label(image == nil ? "Choose image" : "Choose another image", systemImage: "photo")
                     }
-                    if let image { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220) }
+                    if let preview {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Preview").font(.caption).foregroundStyle(.secondary)
+                            Image(uiImage: preview).resizable().aspectRatio(4.0/3.0, contentMode: .fit)
+                        }
+                    }
                 }
-                Section("Overlay") {
-                    TextField("Message", text: $message, axis: .vertical)
-                        .lineLimit(3...6)
-                    Text("The callsign and grid square set in Settings are overlaid on the sent picture.")
-                        .font(.caption).foregroundStyle(.secondary)
+                Section {
+                    Button {
+                        overlay.callsign = model.callsign
+                        overlay.gridsquare = model.gridsquare
+                        showOverlayEditor = true
+                    } label: {
+                        Label("Edit overlay", systemImage: "textformat")
+                    }
+                    .disabled(image == nil)
                 }
                 Section {
                     Button(model.transmitting ? "Stop transmission" : "Transmit audio") {
                         if model.transmitting { model.stopTransmit() }
-                        else if let image { model.transmit(image: image, message: message) }
+                        else if let image { model.transmit(image: image, overlay: overlay) }
                     }
                     .disabled(image == nil && !model.transmitting)
                     Text("Audio plays through the active iOS output route. Radio PTT is not configured.")
@@ -476,7 +610,106 @@ private struct TransmitTab: View {
                     } catch { }
                 }
             }
+            .onAppear {
+                if overlay.callsign.isEmpty { overlay.callsign = model.callsign }
+                if overlay.gridsquare.isEmpty { overlay.gridsquare = model.gridsquare }
+            }
+            .sheet(isPresented: $showOverlayEditor) {
+                OverlayEditorView(config: $overlay, base: image)
+            }
         }
+    }
+}
+
+private struct OverlayEditorView: View {
+    @Binding var config: TextOverlayConfig
+    let base: UIImage?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Text") {
+                    TextField("Callsign", text: $config.callsign)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    TextField("Grid square", text: $config.gridsquare)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    TextField("Message", text: $config.message, axis: .vertical)
+                        .lineLimit(2...5)
+                }
+                Section("Appearance") {
+                    ColorPicker("Color", selection: $config.color, supportsOpacity: false)
+                    Picker("Font", selection: $config.fontName) {
+                        ForEach(TextOverlayConfig.fontOptions, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    }
+                    Picker("Style", selection: $config.style) {
+                        ForEach(OverlayFontStyle.allCases, id: \.self) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    HStack {
+                        Text("Size")
+                        Slider(value: $config.fontSize, in: 8...24, step: 1)
+                        Text("\(Int(config.fontSize))").monospacedDigit()
+                    }
+                }
+                Section("Position") {
+                    if let base {
+                        OverlayPreview(base: base, config: $config)
+                            .frame(height: 220)
+                    } else {
+                        Text("Choose an image first.").foregroundStyle(.secondary)
+                    }
+                    Text("Drag the marker on the preview to move the callsign/grid square.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Overlay")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct OverlayPreview: View {
+    let base: UIImage
+    @Binding var config: TextOverlayConfig
+
+    var body: some View {
+        let preview = RadioModemViewModel.overlayPreview(base: base, config: config) ?? base
+        return GeometryReader { geo in
+            Image(uiImage: preview)
+                .resizable()
+                .scaledToFit()
+                .frame(width: geo.size.width, height: geo.size.height)
+                .overlay(alignment: .topLeading) {
+                    Circle()
+                        .fill(.orange)
+                        .frame(width: 18, height: 18)
+                        .offset(x: config.headerPosition.x * geo.size.width - 9,
+                                y: config.headerPosition.y * geo.size.height - 9)
+                }
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            config.headerPosition = CGPoint(
+                                x: min(1, max(0, value.location.x / geo.size.width)),
+                                y: min(1, max(0, value.location.y / geo.size.height))
+                            )
+                        }
+                )
+        }
+        .aspectRatio(4.0/3.0, contentMode: .fit)
     }
 }
 
@@ -536,9 +769,24 @@ private struct SettingsTab: View {
                     TextField("Callsign", text: $model.callsign)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                    TextField("Grid square", text: $model.gridsquare)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
+                    HStack {
+                        TextField("Grid square", text: $model.gridsquare)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                        Button {
+                            model.useCurrentLocation()
+                        } label: {
+                            if model.isResolvingLocation {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "location")
+                            }
+                        }
+                        .disabled(model.isResolvingLocation)
+                    }
+                    if let locationError = model.locationError {
+                        Text(locationError).font(.caption).foregroundStyle(.red)
+                    }
                     Text("Overlaid on transmitted pictures.")
                         .font(.caption).foregroundStyle(.secondary)
                 }

@@ -160,3 +160,31 @@ enum RadioHistoryItem: Identifiable, Codable, Equatable {
         }
     }
 }
+
+/// Maidenhead locator conversion, ported from GridTracker2's
+/// `latLonToGridSquare` (src/renderer/lib/map/maidenhead.js).
+enum Maidenhead {
+    static func gridSquare(latitude: Double, longitude: Double, width: Int = 6) -> String {
+        guard latitude > -90, latitude < 90, longitude >= -180, longitude <= 180 else { return "" }
+        let adjLat = latitude + 90
+        let adjLon = longitude + 180
+        let fieldLon = Int(adjLon / 20)
+        let fieldLat = Int(adjLat / 10)
+        let remLon = adjLon.truncatingRemainder(dividingBy: 20)
+        let remLat = adjLat.truncatingRemainder(dividingBy: 10)
+        let squareLon = Int(remLon / 2)
+        let squareLat = Int(remLat)
+        var result = [char(65 + fieldLon), char(65 + fieldLat), char(48 + squareLon), char(48 + squareLat)]
+        if width == 6 {
+            let subLon = Int(remLon.truncatingRemainder(dividingBy: 2) * 12)
+            let subLat = Int(remLat.truncatingRemainder(dividingBy: 1) * 24)
+            result.append(char(65 + subLon))
+            result.append(char(65 + subLat))
+        }
+        return String(result)
+    }
+
+    private static func char(_ code: Int) -> Character {
+        Character(UnicodeScalar(code)!)
+    }
+}

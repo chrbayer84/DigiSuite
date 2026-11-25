@@ -4,6 +4,8 @@
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Audio input is used to decode radio modem signals such as Robot 36 SSTV.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is used to determine your Maidenhead grid square for transmitted pictures.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
