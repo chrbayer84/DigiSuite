@@ -124,7 +124,7 @@ final class RadioAudioCaptureService {
     var onError: ((String) -> Void)?
 
     static func requestPermission(_ completion: @escaping (Bool) -> Void) {
-        AVAudioSession.sharedInstance().requestRecordPermission(completion)
+        AVAudioApplication.requestRecordPermission(completionHandler: completion)
     }
 
     func start() throws {
