@@ -8,7 +8,7 @@ final class RadioModemSignalTests: XCTestCase {
         XCTAssertTrue(analyzer.append(Array(audio.prefix(100))).isEmpty)
         let rows = analyzer.append(Array(audio.dropFirst(100)))
         XCTAssertEqual(rows.count, 1)
-        XCTAssertEqual(rows[0].decibels.count, 129)
+        XCTAssertEqual(rows[0].decibels.count, 65)
         XCTAssertGreaterThan(rows[0].decibels[32], -12)
     }
 

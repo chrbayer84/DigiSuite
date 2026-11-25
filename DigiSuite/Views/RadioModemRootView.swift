@@ -15,6 +15,15 @@ final class RadioModemViewModel: ObservableObject {
     @Published var waterfallRows: [[Float]] = []
     @Published var inputName = "No input"
     @Published var errorMessage: String?
+    @Published var pttToneEnabled: Bool = UserDefaults.standard.bool(forKey: "pttToneEnabled") {
+        didSet { UserDefaults.standard.set(pttToneEnabled, forKey: "pttToneEnabled") }
+    }
+    @Published var pttToneFrequency: Double = {
+        let stored = UserDefaults.standard.double(forKey: "pttToneFrequency")
+        return (1000...15000).contains(stored) ? stored : 3000
+    }() {
+        didSet { UserDefaults.standard.set(pttToneFrequency, forKey: "pttToneFrequency") }
+    }
 
     let history = RadioHistoryStore()
     private let capture = RadioAudioCaptureService()
@@ -109,28 +118,32 @@ final class RadioModemViewModel: ObservableObject {
         transmitting = true
         status = .synchronizing
         let transmitter = self.transmitter
+        let rightToneHz: Double? = pttToneEnabled ? pttToneFrequency : nil
         DispatchQueue.global(qos: .userInitiated).async { [weak self, transmitter] in
             let samples = (try? transmitter.encode(rgba, sampleRate: 12_000, amplitude: 0.35)) ?? []
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
+                guard self.transmitting else { return }
                 guard !samples.isEmpty else {
                     self.transmitting = false
                     self.errorMessage = "Could not encode the Robot 36 image."
                     return
                 }
-                do {
-                    try self.player.play(samples, sampleRate: 12_000) {
-                        DispatchQueue.main.async {
-                            self.transmitting = false
-                            self.status = .complete("Robot 36 audio sent")
-                        }
-                    }
-                    self.status = .receiving(mode: "Transmitting Robot 36", line: 0, totalLines: 240)
-                } catch {
-                    self.transmitting = false
-                    self.errorMessage = error.localizedDescription
-                    self.status = .error(error.localizedDescription)
-                }
+                self.status = .receiving(mode: "Transmitting Robot 36", line: 0, totalLines: 240)
+                self.player.play(left: samples, rightToneHz: rightToneHz, sampleRate: 12_000,
+                                 completion: { [weak self] in
+                                     DispatchQueue.main.async {
+                                         self?.transmitting = false
+                                         self?.status = .complete("Robot 36 audio sent")
+                                     }
+                                 },
+                                 failure: { [weak self] error in
+                                     DispatchQueue.main.async {
+                                         self?.transmitting = false
+                                         self?.errorMessage = error.localizedDescription
+                                         self?.status = .error(error.localizedDescription)
+                                     }
+                                 })
             }
         }
     }
@@ -292,12 +305,12 @@ private struct ReceiveTab: View {
 
     private var waterfallPane: some View {
         VStack(alignment: .leading, spacing: 8) {
-            paneTitle("Audio Waterfall", detail: "0–6 kHz · newest at top")
+            paneTitle("Audio Waterfall", detail: "0–3 kHz · newest at top")
             WaterfallCanvas(rows: model.waterfallRows)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.12)))
                 .overlay(alignment: .bottom) {
-                    HStack { Text("0 Hz"); Spacer(); Text("3 kHz"); Spacer(); Text("6 kHz") }
+                    HStack { Text("0 Hz"); Spacer(); Text("1.5 kHz"); Spacer(); Text("3 kHz") }
                         .font(.system(size: 9, design: .monospaced)).foregroundStyle(.white.opacity(0.7))
                         .padding(5).background(.black.opacity(0.45))
                 }
@@ -366,6 +379,18 @@ private struct TransmitTab: View {
                         Label(image == nil ? "Choose image" : "Choose another image", systemImage: "photo")
                     }
                     if let image { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220) }
+                }
+                Section("PTT tone (right channel)") {
+                    Toggle("Enable PTT tone", isOn: $model.pttToneEnabled)
+                    if model.pttToneEnabled {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Slider(value: $model.pttToneFrequency, in: 1000...15000, step: 100)
+                            Text("Frequency: \(Int(model.pttToneFrequency)) Hz")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("The payload is sent on the left channel; a sine tone on the right channel keys VOX PTT, e.g. with a DigiRig smartphone cable.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Section {
                     Button(model.transmitting ? "Stop transmission" : "Transmit audio") {

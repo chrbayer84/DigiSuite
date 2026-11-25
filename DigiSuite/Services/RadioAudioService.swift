@@ -1,6 +1,10 @@
 import AVFoundation
 import Foundation
 
+/// Single serial queue for all audio-session and engine start/stop work, so a
+/// receive teardown never races a transmit startup for the shared session.
+private let radioAudioEngineQueue = DispatchQueue(label: "radio.audio.engine", qos: .userInitiated)
+
 private final class FloatSampleRing {
     private let lock = NSLock()
     private var storage: [Float]
@@ -164,9 +168,12 @@ final class RadioAudioCaptureService {
         drainTimer = nil
         for observer in observers { NotificationCenter.default.removeObserver(observer) }
         observers.removeAll()
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        radioAudioEngineQueue.async { [weak self] in
+            guard let self else { return }
+            self.engine.inputNode.removeTap(onBus: 0)
+            self.engine.stop()
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
     }
 
     private func startDrain() {
@@ -217,34 +224,65 @@ enum AudioServiceError: LocalizedError {
 final class RadioAudioPlayer {
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
+    private let queue = radioAudioEngineQueue
 
-    func play(_ samples: [Float], sampleRate: Double, completion: @escaping () -> Void) throws {
-        guard !samples.isEmpty else { return }
+    /// Plays mono payload audio on the left stereo channel. When `rightToneHz` is
+    /// non-nil, a sine tone at that frequency is generated on the right channel as a
+    /// PTT indicator for VOX cables (e.g. the DigiRig smartphone VOX cable).
+    func play(left: [Float], rightToneHz: Double?, sampleRate: Double,
+              completion: @escaping () -> Void, failure: @escaping (Error) -> Void) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            do {
+                try self.start(left: left, rightToneHz: rightToneHz, sampleRate: sampleRate, completion: completion)
+            } catch {
+                DispatchQueue.main.async { failure(error) }
+            }
+        }
+    }
+
+    func stop() {
+        queue.async { [weak self] in
+            self?.teardown()
+        }
+    }
+
+    private func start(left: [Float], rightToneHz: Double?, sampleRate: Double,
+                       completion: @escaping () -> Void) throws {
+        guard !left.isEmpty else {
+            DispatchQueue.main.async { completion() }
+            return
+        }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
+        try session.setCategory(.playback, mode: .default, options: [.allowBluetooth])
         try session.setActive(true)
-        if !engine.attachedNodes.contains(player) { engine.attach(player) }
-        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
+        engine.reset()
+        engine.attach(player)
+        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate,
+                                   channels: 2, interleaved: false)!
         engine.connect(player, to: engine.mainMixerNode, format: format)
-        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))!
-        buffer.frameLength = AVAudioFrameCount(samples.count)
-        samples.withUnsafeBufferPointer { source in
-            if let destination = buffer.floatChannelData?.pointee {
-                destination.update(from: source.baseAddress!, count: samples.count)
+        let frameCount = left.count
+        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount))!
+        buffer.frameLength = AVAudioFrameCount(frameCount)
+        if let channels = buffer.floatChannelData {
+            let toneStep = rightToneHz.map { 2 * .pi * $0 / sampleRate } ?? 0
+            for index in 0..<frameCount {
+                channels[0][index] = left[index]
+                channels[1][index] = rightToneHz == nil ? 0 : Float(sin(toneStep * Double(index)))
             }
         }
         engine.prepare()
         try engine.start()
-        player.scheduleBuffer(buffer) { [weak self] in
-            self?.player.stop()
-            self?.engine.stop()
-            completion()
+        player.scheduleBuffer(buffer) { [weak self] _ in
+            DispatchQueue.main.async { completion() }
+            self?.queue.async { self?.teardown() }
         }
         player.play()
     }
 
-    func stop() {
+    private func teardown() {
         player.stop()
         engine.stop()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }

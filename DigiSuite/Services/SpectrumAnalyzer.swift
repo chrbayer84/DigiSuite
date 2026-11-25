@@ -21,10 +21,10 @@ final class SpectrumAnalyzer {
         window = (0..<transformSize).map {
             Float(0.5 - 0.5 * cos(2 * .pi * (Double($0) + 0.5) / Double(transformSize)))
         }
-        cosine = (0...(transformSize / 2)).map { k in
+        cosine = (0...(transformSize / 4)).map { k in
             (0..<transformSize).map { Float(cos(2 * .pi * Double(k * $0) / Double(transformSize))) }
         }
-        sine = (0...(transformSize / 2)).map { k in
+        sine = (0...(transformSize / 4)).map { k in
             (0..<transformSize).map { Float(sin(2 * .pi * Double(k * $0) / Double(transformSize))) }
         }
     }
@@ -42,7 +42,7 @@ final class SpectrumAnalyzer {
         var rows: [SpectrumRow] = []
         while nextStart + transformSize <= pending.count {
             let frameStart = nextStart
-            var levels = [Float](repeating: -120, count: transformSize / 2 + 1)
+            var levels = [Float](repeating: -120, count: transformSize / 4 + 1)
             let norm = Float(transformSize * transformSize) / 4
             for k in 0..<levels.count {
                 var real: Float = 0
