@@ -17,10 +17,11 @@ final class RadioReceivePipeline: @unchecked Sendable {
         }
     }
 
-    func reset() {
+    func reset() -> [ReceiveEvent] {
         queue.sync {
-            decoder.reset()
+            let events = decoder.reset()
             spectrum.reset()
+            return events
         }
     }
 }

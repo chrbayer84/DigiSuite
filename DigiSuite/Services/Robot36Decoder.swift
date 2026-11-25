@@ -64,7 +64,8 @@ final class Robot36Decoder: ReceiveModem {
         syncFrequencyRing = [Float](repeating: 0, count: frameRingSize)
     }
 
-    func reset() {
+    func reset() -> [ReceiveEvent] {
+        let events = flushPartialPicture()
         totalSamples = 0
         frameCount = 0
         searchedThrough = -1
@@ -80,6 +81,16 @@ final class Robot36Decoder: ReceiveModem {
         redDifference = [Float](repeating: 128, count: redDifference.count)
         blueDifference = [Float](repeating: 128, count: blueDifference.count)
         latestStatus = .listening
+        return events
+    }
+
+    /// Emits the current picture as a finished-but-incomplete record so partial
+    /// reception is never lost on stop, clear, or route change.
+    private func flushPartialPicture() -> [ReceiveEvent] {
+        guard pictureID != nil, decodedLines > 0 else { return [] }
+        let picture = RadioPicture(startedAt: pictureStartedAt, rgba: Data(image),
+                                   complete: false, frequencyOffsetHz: Int(senderOffset.rounded()))
+        return [.pictureFinished(picture)]
     }
 
     func consume(_ chunk: AudioChunk) -> [ReceiveEvent] {

@@ -103,7 +103,8 @@ enum ReceiveEvent: Sendable {
 protocol ReceiveModem: AnyObject {
     var mode: RadioModeID { get }
     func consume(_ chunk: AudioChunk) -> [ReceiveEvent]
-    func reset()
+    @discardableResult
+    func reset() -> [ReceiveEvent]
 }
 
 /// Transmitters keep payload types mode-specific while sharing the app's audio output path.

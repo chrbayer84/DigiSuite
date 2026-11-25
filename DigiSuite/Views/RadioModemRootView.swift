@@ -24,6 +24,12 @@ final class RadioModemViewModel: ObservableObject {
     }() {
         didSet { UserDefaults.standard.set(pttToneFrequency, forKey: "pttToneFrequency") }
     }
+    @Published var callsign: String = UserDefaults.standard.string(forKey: "operatorCallsign") ?? "" {
+        didSet { UserDefaults.standard.set(callsign, forKey: "operatorCallsign") }
+    }
+    @Published var gridsquare: String = UserDefaults.standard.string(forKey: "operatorGridsquare") ?? "" {
+        didSet { UserDefaults.standard.set(gridsquare, forKey: "operatorGridsquare") }
+    }
 
     let history = RadioHistoryStore()
     private let capture = RadioAudioCaptureService()
@@ -48,9 +54,11 @@ final class RadioModemViewModel: ObservableObject {
         }
         capture.onError = { [weak self] message in
             DispatchQueue.main.async {
-                self?.listening = false
-                self?.status = .error(message)
-                self?.errorMessage = message
+                guard let self else { return }
+                self.apply(self.receivePipeline.reset())
+                self.listening = false
+                self.status = .error(message)
+                self.errorMessage = message
             }
         }
         inputName = Self.activeInputName
@@ -76,7 +84,7 @@ final class RadioModemViewModel: ObservableObject {
                     self.status = .error("Microphone permission denied")
                     return
                 }
-                self.receivePipeline.reset()
+                self.apply(self.receivePipeline.reset())
                 self.waterfallRows.removeAll()
                 self.activePictureID = nil
                 self.capture.start { [weak self] result in
@@ -99,13 +107,13 @@ final class RadioModemViewModel: ObservableObject {
 
     func stopReceive() {
         capture.stop()
-        receivePipeline.reset()
+        apply(receivePipeline.reset())
         listening = false
         status = .idle
     }
 
     func clearReceive() {
-        receivePipeline.reset()
+        apply(receivePipeline.reset())
         activePictureID = nil
         liveImage = nil
         imageBytes = Data(repeating: 0, count: 320 * 240 * 4)
@@ -113,10 +121,10 @@ final class RadioModemViewModel: ObservableObject {
         status = listening ? .listening : .idle
     }
 
-    func transmit(image: UIImage) {
+    func transmit(image: UIImage, message: String) {
         guard selectedMode == .robot36, !transmitting else { return }
         if listening { stopReceive() }
-        guard let rgba = Self.rgbaData(image, width: 320, height: 240) else {
+        guard let rgba = Self.overlayRGBA(base: image, callsign: callsign, gridsquare: gridsquare, message: message) else {
             errorMessage = "Could not prepare the selected image for Robot 36."
             return
         }
@@ -198,6 +206,61 @@ final class RadioModemViewModel: ObservableObject {
         }
         guard didDraw else { return nil }
         return Data(bytes)
+    }
+
+    /// Composes the transmit image with a callsign/gridsquare header and a free-form
+    /// message, returning Robot 36-sized RGBA bytes.
+    private static func overlayRGBA(base: UIImage, callsign: String, gridsquare: String, message: String) -> Data? {
+        let width = 320
+        let height = 240
+        let header = [callsign.trimmingCharacters(in: .whitespaces),
+                     gridsquare.trimmingCharacters(in: .whitespaces)]
+            .filter { !$0.isEmpty }.joined(separator: " ")
+        let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !header.isEmpty || !trimmedMessage.isEmpty else {
+            return rgbaData(base, width: width, height: height)
+        }
+        let size = CGSize(width: width, height: height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let composed = renderer.image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            base.draw(in: CGRect(origin: .zero, size: size))
+            var nextY: CGFloat = 4
+            if !header.isEmpty {
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.monospacedSystemFont(ofSize: 15, weight: .bold),
+                    .foregroundColor: UIColor.white
+                ]
+                let textSize = header.size(withAttributes: attrs)
+                context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.6).cgColor)
+                context.cgContext.fill(CGRect(x: 2, y: 2, width: textSize.width + 8, height: textSize.height + 4))
+                header.draw(at: CGPoint(x: 6, y: 4), withAttributes: attrs)
+                nextY = 4 + textSize.height + 4
+            }
+            if !trimmedMessage.isEmpty {
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .regular),
+                    .foregroundColor: UIColor.white
+                ]
+                let availableWidth = CGFloat(width) - 8
+                let bounding = CGSize(width: availableWidth, height: CGFloat(height) - nextY)
+                let messageRect = trimmedMessage.boundingRect(with: bounding,
+                                                              options: [.usesLineFragmentOrigin, .usesFontLeading],
+                                                              attributes: attrs, context: nil)
+                context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.6).cgColor)
+                context.cgContext.fill(CGRect(x: 2, y: nextY - 2,
+                                              width: min(messageRect.width + 8, availableWidth + 4),
+                                              height: messageRect.height + 4))
+                trimmedMessage.draw(with: CGRect(x: 6, y: nextY, width: availableWidth, height: CGFloat(height) - nextY),
+                                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                                    attributes: attrs, context: nil)
+            }
+        }
+        return rgbaData(composed, width: width, height: height)
     }
 
     static func makeImage(_ data: Data, width: Int, height: Int) -> UIImage? {
@@ -368,6 +431,7 @@ private struct TransmitTab: View {
     @ObservedObject var model: RadioModemViewModel
     @State private var selection: PhotosPickerItem?
     @State private var image: UIImage?
+    @State private var message = ""
 
     var body: some View {
         NavigationStack {
@@ -385,10 +449,16 @@ private struct TransmitTab: View {
                     }
                     if let image { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220) }
                 }
+                Section("Overlay") {
+                    TextField("Message", text: $message, axis: .vertical)
+                        .lineLimit(3...6)
+                    Text("The callsign and grid square set in Settings are overlaid on the sent picture.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Section {
                     Button(model.transmitting ? "Stop transmission" : "Transmit audio") {
                         if model.transmitting { model.stopTransmit() }
-                        else if let image { model.transmit(image: image) }
+                        else if let image { model.transmit(image: image, message: message) }
                     }
                     .disabled(image == nil && !model.transmitting)
                     Text("Audio plays through the active iOS output route. Radio PTT is not configured.")
@@ -427,8 +497,14 @@ private struct HistoryTab: View {
                             if let thumbnail = RadioModemViewModel.makeImage(picture.rgba, width: picture.width, height: picture.height) {
                                 Image(uiImage: thumbnail).resizable().scaledToFit().frame(width: 80, height: 60).background(.black)
                             }
-                            VStack(alignment: .leading) {
-                                Text("Robot 36 SSTV").font(.headline)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text("Robot 36 SSTV").font(.headline)
+                                    if !picture.complete {
+                                        Text("Partial").font(.caption2).padding(.horizontal, 6).padding(.vertical, 1)
+                                            .background(.orange.opacity(0.25)).foregroundStyle(.orange).clipShape(Capsule())
+                                    }
+                                }
                                 Text(picture.startedAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.secondary)
                             }
                         }
@@ -456,6 +532,16 @@ private struct SettingsTab: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Operator") {
+                    TextField("Callsign", text: $model.callsign)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    TextField("Grid square", text: $model.gridsquare)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    Text("Overlaid on transmitted pictures.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Section("Audio") {
                     LabeledContent("Input", value: model.inputName)
                     LabeledContent("Receive rate", value: "12 kHz mono")
