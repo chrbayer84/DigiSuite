@@ -406,8 +406,9 @@ private struct HistoryTab: View {
                     switch item {
                     case .picture(let picture):
                         HStack(spacing: 12) {
-                            RadioModemViewModel.makeImage(picture.rgba, width: picture.width, height: picture.height)?
-                                .resizable().scaledToFit().frame(width: 80, height: 60).background(.black)
+                            if let thumbnail = RadioModemViewModel.makeImage(picture.rgba, width: picture.width, height: picture.height) {
+                                Image(uiImage: thumbnail).resizable().scaledToFit().frame(width: 80, height: 60).background(.black)
+                            }
                             VStack(alignment: .leading) {
                                 Text("Robot 36 SSTV").font(.headline)
                                 Text(picture.startedAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.secondary)
