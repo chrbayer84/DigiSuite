@@ -76,17 +76,22 @@ final class RadioModemViewModel: ObservableObject {
                     self.status = .error("Microphone permission denied")
                     return
                 }
-                do {
-                    self.receivePipeline.reset()
-                    self.waterfallRows.removeAll()
-                    self.activePictureID = nil
-                    try self.capture.start()
-                    self.inputName = Self.activeInputName
-                    self.listening = true
-                    self.status = .listening
-                } catch {
-                    self.errorMessage = error.localizedDescription
-                    self.status = .error(error.localizedDescription)
+                self.receivePipeline.reset()
+                self.waterfallRows.removeAll()
+                self.activePictureID = nil
+                self.capture.start { [weak self] result in
+                    DispatchQueue.main.async {
+                        guard let self else { return }
+                        switch result {
+                        case .success:
+                            self.inputName = Self.activeInputName
+                            self.listening = true
+                            self.status = .listening
+                        case .failure(let error):
+                            self.errorMessage = error.localizedDescription
+                            self.status = .error(error.localizedDescription)
+                        }
+                    }
                 }
             }
         }

@@ -131,10 +131,25 @@ final class RadioAudioCaptureService {
         AVAudioApplication.requestRecordPermission(completionHandler: completion)
     }
 
-    func start() throws {
+    func start(completion: @escaping (Result<Void, Error>) -> Void) {
+        radioAudioEngineQueue.async { [weak self] in
+            guard let self else {
+                completion(.failure(AudioServiceError.noInput))
+                return
+            }
+            do {
+                try self.startEngine()
+                completion(.success(()))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }
+
+    private func startEngine() throws {
         guard !running else { return }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
+        try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothHFP, .defaultToSpeaker])
         try session.setActive(true)
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
@@ -254,7 +269,7 @@ final class RadioAudioPlayer {
             return
         }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default, options: [.allowBluetooth])
+        try session.setCategory(.playback, mode: .default, options: [.allowBluetoothHFP])
         try session.setActive(true)
         engine.reset()
         engine.attach(player)
@@ -273,7 +288,7 @@ final class RadioAudioPlayer {
         }
         engine.prepare()
         try engine.start()
-        player.scheduleBuffer(buffer) { [weak self] _ in
+        player.scheduleBuffer(buffer) { [weak self] in
             DispatchQueue.main.async { completion() }
             self?.queue.async { self?.teardown() }
         }
