@@ -33,7 +33,7 @@ final class RadioHistoryStore: ObservableObject {
         if let data = try? Data(contentsOf: indexURL), let decoded = try? decoder.decode([StoredEntry].self, from: data) {
             items = decoded.compactMap { entry in
                 if entry.kind == "picture", let file = entry.imageFile,
-                   let rgba = try? Data(contentsOf: directory.appendingPathComponent(file)) {
+                   let rgba = try? Data(contentsOf: historyDirectory.appendingPathComponent(file)) {
                     return .picture(RadioPicture(id: entry.id, mode: entry.mode, startedAt: entry.date,
                                                  width: entry.width ?? 320, height: entry.height ?? 240,
                                                  rgba: rgba, complete: entry.complete ?? false,

@@ -38,6 +38,9 @@ final class Robot36Decoder: ReceiveModem {
     private var latestStatus: ModemStatus = .listening
 
     init() {
+        let analysisLength = self.analysisLength
+        let fftLength = self.fftLength
+        let bins = self.bins
         window = (0..<analysisLength).map {
             Float(0.5 - 0.5 * cos(2 * .pi * (Double($0) + 0.5) / Double(analysisLength)))
         }
