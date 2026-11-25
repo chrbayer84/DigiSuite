@@ -20,7 +20,7 @@ final class RadioModemViewModel: ObservableObject {
     }
     @Published var pttToneFrequency: Double = {
         let stored = UserDefaults.standard.double(forKey: "pttToneFrequency")
-        return (1000...15000).contains(stored) ? stored : 3000
+        return (1000...15000).contains(stored) ? stored : 1000
     }() {
         didSet { UserDefaults.standard.set(pttToneFrequency, forKey: "pttToneFrequency") }
     }
@@ -385,18 +385,6 @@ private struct TransmitTab: View {
                     }
                     if let image { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220) }
                 }
-                Section("PTT tone (right channel)") {
-                    Toggle("Enable PTT tone", isOn: $model.pttToneEnabled)
-                    if model.pttToneEnabled {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Slider(value: $model.pttToneFrequency, in: 1000...15000, step: 100)
-                            Text("Frequency: \(Int(model.pttToneFrequency)) Hz")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Text("The payload is sent on the left channel; a sine tone on the right channel keys VOX PTT, e.g. with a DigiRig smartphone cable.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
                 Section {
                     Button(model.transmitting ? "Stop transmission" : "Transmit audio") {
                         if model.transmitting { model.stopTransmit() }
@@ -472,6 +460,18 @@ private struct SettingsTab: View {
                     LabeledContent("Input", value: model.inputName)
                     LabeledContent("Receive rate", value: "12 kHz mono")
                     Text("The app uses the active iOS audio route. Connect a headset or audio interface before starting reception.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("PTT tone (right channel)") {
+                    Toggle("Enable PTT tone", isOn: $model.pttToneEnabled)
+                    if model.pttToneEnabled {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Slider(value: $model.pttToneFrequency, in: 1000...15000, step: 100)
+                            Text("Frequency: \(Int(model.pttToneFrequency)) Hz")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("The payload is sent on the left channel; a sine tone on the right channel keys VOX PTT, e.g. with a DigiRig smartphone cable.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("History") {
