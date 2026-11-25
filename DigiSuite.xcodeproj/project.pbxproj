@@ -1,0 +1,553 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1234567890ABCDEF1234567 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234566 /* AppDelegate.swift */; };
+		A1234567890ABCDEF1234569 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234568 /* SceneDelegate.swift */; };
+		A1234567890ABCDEF123456B /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF123456A /* ViewController.swift */; };
+		A1234567890ABCDEF123456E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF123456C /* Main.storyboard */; };
+		A1234567890ABCDEF1234570 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF123456F /* Assets.xcassets */; };
+		A1234567890ABCDEF1234573 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF1234571 /* LaunchScreen.storyboard */; };
+		B1234567890ABCDEF1234601 /* RadioModemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234611 /* RadioModemModels.swift */; };
+		B1234567890ABCDEF1234602 /* RadioAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234612 /* RadioAudioService.swift */; };
+		B1234567890ABCDEF1234603 /* SpectrumAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234613 /* SpectrumAnalyzer.swift */; };
+		B1234567890ABCDEF1234604 /* RadioHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234614 /* RadioHistoryStore.swift */; };
+		B1234567890ABCDEF1234605 /* Robot36Decoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234615 /* Robot36Decoder.swift */; };
+		B1234567890ABCDEF1234606 /* Robot36Encoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234616 /* Robot36Encoder.swift */; };
+		B1234567890ABCDEF1234607 /* RadioModemRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234617 /* RadioModemRootView.swift */; };
+		B1234567890ABCDEF1234608 /* RadioModemSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234618 /* RadioModemSignalTests.swift */; };
+		B1234567890ABCDEF1234630 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234631 /* XCTest.framework */; };
+		B1234567890ABCDEF1234634 /* RadioReceivePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234633 /* RadioReceivePipeline.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1234567890ABCDEF1234563 /* DigiSuite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DigiSuite.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1234567890ABCDEF1234566 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A1234567890ABCDEF1234568 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		A1234567890ABCDEF123456A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		A1234567890ABCDEF123456D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		A1234567890ABCDEF123456F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1234567890ABCDEF1234572 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A1234567890ABCDEF1234574 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234611 /* RadioModemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioModemModels.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234612 /* RadioAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioAudioService.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234613 /* SpectrumAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectrumAnalyzer.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234614 /* RadioHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioHistoryStore.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234615 /* Robot36Decoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Robot36Decoder.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234616 /* Robot36Encoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Robot36Encoder.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234617 /* RadioModemRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioModemRootView.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234618 /* RadioModemSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioModemSignalTests.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234619 /* DigiSuiteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DigiSuiteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1234567890ABCDEF1234631 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		B1234567890ABCDEF1234633 /* RadioReceivePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioReceivePipeline.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1234567890ABCDEF1234560 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1234567890ABCDEF1234622 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1234567890ABCDEF1234630 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1234567890ABCDEF1234559 = {
+			isa = PBXGroup;
+			children = (
+				A1234567890ABCDEF123455A /* DigiSuite */,
+				B1234567890ABCDEF1234629 /* DigiSuiteTests */,
+				A1234567890ABCDEF1234564 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1234567890ABCDEF123455A /* DigiSuite */ = {
+			isa = PBXGroup;
+			children = (
+				A1234567890ABCDEF1234566 /* AppDelegate.swift */,
+				A1234567890ABCDEF1234568 /* SceneDelegate.swift */,
+				A1234567890ABCDEF123456A /* ViewController.swift */,
+				A1234567890ABCDEF1234584 /* Models */,
+				A1234567890ABCDEF1234585 /* Services */,
+				A1234567890ABCDEF1234586 /* Views */,
+				A1234567890ABCDEF123456C /* Main.storyboard */,
+				A1234567890ABCDEF123456F /* Assets.xcassets */,
+				A1234567890ABCDEF1234571 /* LaunchScreen.storyboard */,
+				A1234567890ABCDEF1234574 /* Info.plist */,
+			);
+			path = DigiSuite;
+			sourceTree = "<group>";
+		};
+		A1234567890ABCDEF1234564 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1234567890ABCDEF1234563 /* DigiSuite.app */,
+				B1234567890ABCDEF1234619 /* DigiSuiteTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B1234567890ABCDEF1234629 /* DigiSuiteTests */ = {
+			isa = PBXGroup;
+			children = (
+				B1234567890ABCDEF1234618 /* RadioModemSignalTests.swift */,
+			);
+			path = DigiSuiteTests;
+			sourceTree = "<group>";
+		};
+		A1234567890ABCDEF1234584 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B1234567890ABCDEF1234611 /* RadioModemModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1234567890ABCDEF1234585 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B1234567890ABCDEF1234612 /* RadioAudioService.swift */,
+				B1234567890ABCDEF1234613 /* SpectrumAnalyzer.swift */,
+				B1234567890ABCDEF1234614 /* RadioHistoryStore.swift */,
+				B1234567890ABCDEF1234615 /* Robot36Decoder.swift */,
+				B1234567890ABCDEF1234616 /* Robot36Encoder.swift */,
+				B1234567890ABCDEF1234633 /* RadioReceivePipeline.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A1234567890ABCDEF1234586 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B1234567890ABCDEF1234617 /* RadioModemRootView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1234567890ABCDEF1234562 /* DigiSuite */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1234567890ABCDEF1234577 /* Build configuration list for PBXNativeTarget "DigiSuite" */;
+			buildPhases = (
+				A1234567890ABCDEF123455F /* Sources */,
+				A1234567890ABCDEF1234560 /* Frameworks */,
+				A1234567890ABCDEF1234561 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DigiSuite;
+			productName = DigiSuite;
+			productReference = A1234567890ABCDEF1234563 /* DigiSuite.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B1234567890ABCDEF1234625 /* DigiSuiteTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1234567890ABCDEF1234626 /* Build configuration list for PBXNativeTarget "DigiSuiteTests" */;
+			buildPhases = (
+				B1234567890ABCDEF1234624 /* Sources */,
+				B1234567890ABCDEF1234622 /* Frameworks */,
+				B1234567890ABCDEF1234623 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = (
+				B1234567890ABCDEF1234621 /* PBXTargetDependency */,
+			);
+			name = DigiSuiteTests;
+			productName = DigiSuiteTests;
+			productReference = B1234567890ABCDEF1234619 /* DigiSuiteTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+		B1234567890ABCDEF1234620 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1234567890ABCDEF123455B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1234567890ABCDEF1234562;
+			remoteInfo = DigiSuite;
+		};
+		B1234567890ABCDEF1234621 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1234567890ABCDEF1234562 /* DigiSuite */;
+			targetProxy = B1234567890ABCDEF1234620 /* PBXContainerItemProxy */;
+		};
+
+/* Begin PBXProject section */
+		A1234567890ABCDEF123455B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+				A1234567890ABCDEF1234562 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A1234567890ABCDEF123455E /* Build configuration list for PBXProject "DigiSuite" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1234567890ABCDEF1234559;
+			productRefGroup = A1234567890ABCDEF1234564 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1234567890ABCDEF1234562 /* DigiSuite */,
+				B1234567890ABCDEF1234625 /* DigiSuiteTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1234567890ABCDEF1234561 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1234567890ABCDEF1234573 /* LaunchScreen.storyboard in Resources */,
+				A1234567890ABCDEF1234570 /* Assets.xcassets in Resources */,
+				A1234567890ABCDEF123456E /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1234567890ABCDEF1234623 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1234567890ABCDEF123455F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1234567890ABCDEF123456B /* ViewController.swift in Sources */,
+				A1234567890ABCDEF1234567 /* AppDelegate.swift in Sources */,
+				A1234567890ABCDEF1234569 /* SceneDelegate.swift in Sources */,
+				B1234567890ABCDEF1234601 /* RadioModemModels.swift in Sources */,
+				B1234567890ABCDEF1234602 /* RadioAudioService.swift in Sources */,
+				B1234567890ABCDEF1234603 /* SpectrumAnalyzer.swift in Sources */,
+				B1234567890ABCDEF1234604 /* RadioHistoryStore.swift in Sources */,
+				B1234567890ABCDEF1234605 /* Robot36Decoder.swift in Sources */,
+				B1234567890ABCDEF1234606 /* Robot36Encoder.swift in Sources */,
+				B1234567890ABCDEF1234607 /* RadioModemRootView.swift in Sources */,
+				B1234567890ABCDEF1234634 /* RadioReceivePipeline.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1234567890ABCDEF1234624 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1234567890ABCDEF1234608 /* RadioModemSignalTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		A1234567890ABCDEF123456C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A1234567890ABCDEF123456D /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		A1234567890ABCDEF1234571 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A1234567890ABCDEF1234572 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		A1234567890ABCDEF1234575 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = VR3HG6C7W9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A1234567890ABCDEF1234576 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = VR3HG6C7W9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A1234567890ABCDEF1234578 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = VRRTAP3C2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DigiSuite/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DigiSuite;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = armv7;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuite;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "DigiSuite Apple Store";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1234567890ABCDEF1234579 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = VRRTAP3C2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DigiSuite/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DigiSuite;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = armv7;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuite;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "DigiSuite Apple Store";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B1234567890ABCDEF1234627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuiteTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DigiSuite.app/DigiSuite";
+			};
+			name = Debug;
+		};
+		B1234567890ABCDEF1234628 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuiteTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DigiSuite.app/DigiSuite";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1234567890ABCDEF123455E /* Build configuration list for PBXProject "DigiSuite" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1234567890ABCDEF1234575 /* Debug */,
+				A1234567890ABCDEF1234576 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1234567890ABCDEF1234577 /* Build configuration list for PBXNativeTarget "DigiSuite" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1234567890ABCDEF1234578 /* Debug */,
+				A1234567890ABCDEF1234579 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1234567890ABCDEF1234626 /* Build configuration list for PBXNativeTarget "DigiSuiteTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1234567890ABCDEF1234627 /* Debug */,
+				B1234567890ABCDEF1234628 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1234567890ABCDEF123455B /* Project object */;
+}

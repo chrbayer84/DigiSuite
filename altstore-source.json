@@ -1,0 +1,40 @@
+{
+  "name": "DigiSuite AltStore Source",
+  "subtitle": "A source for all of my apps",
+  "description": "Welcome to my source! Here you'll find all of my apps.",
+  "iconURL": "https://i.imgur.com/XSFBK50.png",
+  "website": "https://github.com/chrbayer84/DigiSuite",
+  "tintColor": "#6156e2",
+  "featuredApps": [
+    "com.github.chrbayer84.DigiSuite"
+  ],
+  "apps": [
+    {
+      "name": "DigiSuite",
+      "bundleIdentifier": "com.github.chrbayer84.DigiSuite",
+      "developerName": "Christian Bayer, WA4YA",
+      "subtitle": "Radio modem receiver and transmitter",
+      "localizedDescription": "Robot 36 SSTV receive and transmit with a live waterfall. Open Source: https://github.com/chrbayer84/DigiSuite",
+      "iconURL": "https://i.imgur.com/RArjezp.png",
+      "tintColor": "#6156e2",
+      "category": "social",
+      "screenshots": [],
+      "versions": [
+        {
+          "downloadURL": "https://github.com/chrbayer84/DigiSuite/releases/download/v1.8/DigiSuite.ipa",
+          "size": 200000,
+          "version": "1.8",
+          "buildVersion": "1",
+          "date": "2026-09-24T08:59:14-04:00",
+          "localizedDescription": null,
+          "minOSVersion": null
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}
