@@ -441,11 +441,18 @@ private struct ReceiveTab: View {
                     .pickerStyle(.menu)
                     .onChange(of: mode) { _, value in model.selectedMode = value }
                     Spacer()
-                    Button(model.listening ? "Stop" : "Receive") {
+                    Button {
                         model.listening ? model.stopReceive() : model.startReceive()
+                    } label: {
+                        Text("RX")
+                            .foregroundStyle(.white)
+                            .frame(minWidth: 56)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 14)
+                            .background(Color.green)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(model.listening ? .orange : .cyan)
+                    .buttonStyle(.plain)
                     Button("Clear", systemImage: "trash") { model.clearReceive() }
                         .labelStyle(.iconOnly)
                         .buttonStyle(.bordered)
@@ -590,10 +597,18 @@ private struct TransmitTab: View {
                     .disabled(image == nil)
                 }
                 Section {
-                    Button(model.transmitting ? "Stop transmission" : "Transmit audio") {
+                    Button {
                         if model.transmitting { model.stopTransmit() }
                         else if let image { model.transmit(image: image, overlay: overlay) }
+                    } label: {
+                        Text("TX")
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                    .buttonStyle(.plain)
                     .disabled(image == nil && !model.transmitting)
                     Text("Audio plays through the active iOS output route. Radio PTT is not configured.")
                         .font(.caption).foregroundStyle(.secondary)
