@@ -652,10 +652,12 @@ private struct OverlayEditorView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    HStack {
-                        Text("Size")
-                        Slider(value: $config.fontSize, in: 8...24, step: 1)
-                        Text("\(Int(config.fontSize))").monospacedDigit()
+                    Slider(value: $config.fontSize, in: 8...48, step: 1) {
+                        Text("Size \(Int(config.fontSize))")
+                    } minimumValueLabel: {
+                        Text("8").font(.caption)
+                    } maximumValueLabel: {
+                        Text("48").font(.caption)
                     }
                 }
                 Section("Position") {
@@ -769,21 +771,19 @@ private struct SettingsTab: View {
                     TextField("Callsign", text: $model.callsign)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                    HStack {
-                        TextField("Grid square", text: $model.gridsquare)
-                            .textInputAutocapitalization(.characters)
-                            .autocorrectionDisabled()
-                        Button {
-                            model.useCurrentLocation()
-                        } label: {
-                            if model.isResolvingLocation {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "location")
-                            }
+                    TextField("Grid square", text: $model.gridsquare)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    Button {
+                        model.useCurrentLocation()
+                    } label: {
+                        if model.isResolvingLocation {
+                            Label("Locating…", systemImage: "location")
+                        } else {
+                            Label("Use current location", systemImage: "location")
                         }
-                        .disabled(model.isResolvingLocation)
                     }
+                    .disabled(model.isResolvingLocation)
                     if let locationError = model.locationError {
                         Text(locationError).font(.caption).foregroundStyle(.red)
                     }
