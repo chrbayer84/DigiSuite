@@ -95,7 +95,7 @@ enum FT8Message {
     }
 
     static func extractCRC(_ a91: [UInt8]) -> UInt16 {
-        return UInt16((a91[9] & 0x07) << 11) | UInt16(a91[10] << 3) | UInt16(a91[11] >> 5)
+        return (UInt16(a91[9] & 0x07) << 11) | (UInt16(a91[10]) << 3) | UInt16(a91[11] >> 5)
     }
 
     // MARK: - Payload field access
@@ -396,5 +396,272 @@ enum FT8Message {
 
     private static func isLetter(_ c: Character) -> Bool {
         return (c >= "A" && c <= "Z") || (c >= "a" && c <= "z")
+    }
+
+    // MARK: - Encode text -> payload
+
+    static func encode(_ text: String) -> [UInt8]? {
+        let normalized = text.uppercased()
+        var callTo = ""
+        var callDe = ""
+        var extra = ""
+        var position: String
+
+        if normalized.hasPrefix("CQ ") {
+            position = String(normalized.dropFirst(3))
+            if parseCQModifier(normalized) != nil {
+                let arg = nextToken(&position)
+                callTo = "CQ " + arg
+            } else {
+                callTo = "CQ"
+            }
+        } else {
+            position = normalized
+            callTo = nextToken(&position)
+        }
+        callDe = nextToken(&position)
+        extra = nextToken(&position)
+
+        if position.trimmingCharacters(in: .whitespaces).isEmpty {
+            if let payload = encodeStandard(callTo, callDe, extra) { return payload }
+            if let payload = encodeNonstandard(callTo, callDe, extra) { return payload }
+        }
+        return encodeFree(normalized)
+    }
+
+    private static func nextToken(_ position: inout String) -> String {
+        let trimmed = position.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            position = ""
+            return ""
+        }
+        if let space = trimmed.firstIndex(of: " ") {
+            let token = String(trimmed[..<space])
+            position = String(trimmed[trimmed.index(after: space)...])
+            return token
+        }
+        let token = trimmed
+        position = ""
+        return token
+    }
+
+    private static func parseCQModifier(_ string: String) -> Int? {
+        let chars = Array(string)
+        guard chars.count > 3 else { return nil }
+        var numDigits = 0
+        var numLetters = 0
+        var m = 0
+        for i in 3..<8 {
+            guard i < chars.count else { break }
+            let c = chars[i]
+            if c == " " { break }
+            if isDigit(c) { numDigits += 1 }
+            else if isLetter(c) {
+                numLetters += 1
+                m = 27 * m + Int(c.asciiValue! - 65 + 1)
+            } else {
+                return nil
+            }
+        }
+        if numDigits == 3 && numLetters == 0 {
+            var value = 0
+            for i in 3..<6 where i < chars.count && isDigit(chars[i]) {
+                value = value * 10 + Int(chars[i].asciiValue! - 48)
+            }
+            return value
+        }
+        if numDigits == 0 && numLetters > 0 && numLetters <= 4 {
+            return 1000 + m
+        }
+        return nil
+    }
+
+    static func pack28(_ callsign: String) -> (UInt32, UInt8)? {
+        if callsign == "DE" { return (0, 0) }
+        if callsign == "QRZ" { return (1, 0) }
+        if callsign == "CQ" { return (2, 0) }
+        let length = callsign.count
+        if callsign.hasPrefix("CQ ") && length < 8 {
+            guard let v = parseCQModifier(callsign) else { return nil }
+            return (UInt32(3 + v), 0)
+        }
+        var ip: UInt8 = 0
+        var base = callsign
+        if callsign.hasSuffix("/P") || callsign.hasSuffix("/R") {
+            ip = 1
+            base = String(callsign.dropLast(2))
+        }
+        let n28 = packBasecall(base)
+        if n28 >= 0 {
+            return (UInt32(maxTokens) + UInt32(max22) + UInt32(n28), ip)
+        }
+        if length >= 3 && length <= 11 {
+            return (UInt32(maxTokens) + saveCallsignHash(callsign), 0)
+        }
+        return nil
+    }
+
+    static func pack58(_ callsign: String) -> UInt64? {
+        var src = callsign
+        if src.hasPrefix("<") { src = String(src.dropFirst()) }
+        var result: UInt64 = 0
+        var length = 0
+        for c in src {
+            if c == "<" || length >= 11 { break }
+            let j = nchar(c, .alphanumSpaceSlash)
+            guard j >= 0 else { return nil }
+            result = result * 38 + UInt64(j)
+            length += 1
+        }
+        return result
+    }
+
+    static func packGrid(_ grid: String) -> UInt16 {
+        if grid.isEmpty { return UInt16(maxGrid4) + 1 }
+        if grid == "RRR" { return UInt16(maxGrid4) + 2 }
+        if grid == "RR73" { return UInt16(maxGrid4) + 3 }
+        if grid == "73" { return UInt16(maxGrid4) + 4 }
+        let chars = Array(grid)
+        if chars.count >= 4,
+           chars[0] >= "A" && chars[0] <= "R",
+           chars[1] >= "A" && chars[1] <= "R",
+           isDigit(chars[2]), isDigit(chars[3]) {
+            var g = UInt16(chars[0].asciiValue! - 65)
+            g = g * 18 + UInt16(chars[1].asciiValue! - 65)
+            g = g * 10 + UInt16(chars[2].asciiValue! - 48)
+            g = g * 10 + UInt16(chars[3].asciiValue! - 48)
+            return g
+        }
+        let isR = chars.first == "R"
+        let dd = isR ? ddToInt(String(chars.dropFirst())) : ddToInt(grid)
+        let report = max(0, min(300, 35 + dd))
+        if isR {
+            return (UInt16(maxGrid4) + UInt16(report)) | 0x8000
+        }
+        return UInt16(maxGrid4) + UInt16(report)
+    }
+
+    private static func ddToInt(_ str: String) -> Int {
+        let chars = Array(str)
+        var negative = false
+        var i = 0
+        if chars.first == "-" { negative = true; i = 1 }
+        else if chars.first == "+" { i = 1 }
+        var result = 0
+        while i < chars.count {
+            guard isDigit(chars[i]) else { break }
+            result = result * 10 + Int(chars[i].asciiValue! - 48)
+            i += 1
+        }
+        return negative ? -result : result
+    }
+
+    static func encodeStandard(_ callTo: String, _ callDe: String, _ extra: String) -> [UInt8]? {
+        guard let (n28a, ipa) = pack28(callTo),
+              let (n28b, ipb) = pack28(callDe) else { return nil }
+
+        var i3: UInt8 = 1
+        if callTo.hasSuffix("/P") || callDe.hasSuffix("/P") {
+            i3 = 2
+            if callTo.hasSuffix("/R") || callDe.hasSuffix("/R") { return nil }
+        }
+
+        let isCQ = callTo == "CQ" || callTo.hasPrefix("CQ ")
+        if isCQ, let slash = callDe.firstIndex(of: "/") {
+            let suffix = String(callDe[slash...])
+            if callDe.distance(from: callDe.startIndex, to: slash) >= 2 && suffix != "/P" && suffix != "/R" {
+                return nil  // nonstandard call: use type 4
+            }
+        }
+
+        let igrid4 = packGrid(extra)
+        var n29a = (n28a << 1) | UInt32(ipa)
+        var n29b = (n28b << 1) | UInt32(ipb)
+        if callTo.hasSuffix("/R") {
+            n29a |= 1
+        } else if callTo.hasSuffix("/P") {
+            n29a |= 1
+            i3 = 2
+        }
+
+        var payload = [UInt8](repeating: 0, count: 10)
+        payload[0] = UInt8(truncatingIfNeeded: n29a >> 21)
+        payload[1] = UInt8(truncatingIfNeeded: n29a >> 13)
+        payload[2] = UInt8(truncatingIfNeeded: n29a >> 5)
+        payload[3] = UInt8(truncatingIfNeeded: n29a << 3) | UInt8(truncatingIfNeeded: n29b >> 26)
+        payload[4] = UInt8(truncatingIfNeeded: n29b >> 18)
+        payload[5] = UInt8(truncatingIfNeeded: n29b >> 10)
+        payload[6] = UInt8(truncatingIfNeeded: n29b >> 2)
+        payload[7] = UInt8(truncatingIfNeeded: n29b << 6) | UInt8(truncatingIfNeeded: igrid4 >> 10)
+        payload[8] = UInt8(truncatingIfNeeded: igrid4 >> 2)
+        payload[9] = UInt8(truncatingIfNeeded: igrid4 << 6) | UInt8(i3 << 3)
+        return payload
+    }
+
+    static func encodeNonstandard(_ callTo: String, _ callDe: String, _ extra: String) -> [UInt8]? {
+        let i3: UInt8 = 4
+        let icq: UInt8 = (callTo == "CQ" || callTo.hasPrefix("CQ ")) ? 1 : 0
+        if icq == 0 && callTo.count < 3 { return nil }
+        if callDe.count < 3 { return nil }
+
+        var iflip: UInt8
+        var n12: UInt16
+        let call58: String
+        if icq == 0 {
+            let deChars = Array(callDe)
+            iflip = (deChars.first == "<" && deChars.last == ">") ? 1 : 0
+            let call12 = iflip == 0 ? callTo : callDe
+            call58 = iflip == 0 ? callDe : callTo
+            n12 = UInt16(saveCallsignHash(call12) >> 10)
+        } else {
+            iflip = 0
+            n12 = 0
+            call58 = callDe
+        }
+        guard let n58 = pack58(call58) else { return nil }
+        let nrpt: UInt8
+        if icq != 0 { nrpt = 0 }
+        else if extra == "RRR" { nrpt = 1 }
+        else if extra == "RR73" { nrpt = 2 }
+        else if extra == "73" { nrpt = 3 }
+        else { nrpt = 0 }
+
+        var payload = [UInt8](repeating: 0, count: 10)
+        payload[0] = UInt8(truncatingIfNeeded: n12 >> 4)
+        payload[1] = UInt8(truncatingIfNeeded: UInt16(n12) << 4) | UInt8(truncatingIfNeeded: n58 >> 54)
+        payload[2] = UInt8(truncatingIfNeeded: n58 >> 46)
+        payload[3] = UInt8(truncatingIfNeeded: n58 >> 38)
+        payload[4] = UInt8(truncatingIfNeeded: n58 >> 30)
+        payload[5] = UInt8(truncatingIfNeeded: n58 >> 22)
+        payload[6] = UInt8(truncatingIfNeeded: n58 >> 14)
+        payload[7] = UInt8(truncatingIfNeeded: n58 >> 6)
+        payload[8] = UInt8(truncatingIfNeeded: n58 << 2) | UInt8(iflip << 1) | UInt8(nrpt >> 1)
+        payload[9] = UInt8(nrpt << 7) | UInt8(icq << 6) | UInt8(i3 << 3)
+        return payload
+    }
+
+    static func encodeFree(_ text: String) -> [UInt8]? {
+        let chars = Array(text)
+        guard chars.count <= 13 else { return nil }
+        var b71 = [UInt8](repeating: 0, count: 9)
+        for idx in 0..<13 {
+            let c: Character = idx < chars.count ? chars[idx] : " "
+            let cid = nchar(c, .full)
+            guard cid >= 0 else { return nil }
+            var rem: UInt16 = UInt16(cid)
+            for i in (0..<9).reversed() {
+                rem += UInt16(b71[i]) * 42
+                b71[i] = UInt8(rem & 0xFF)
+                rem >>= 8
+            }
+        }
+        var payload = [UInt8](repeating: 0, count: 10)
+        var carry: UInt8 = 0
+        for i in (0..<9).reversed() {
+            payload[i] = (b71[i] << 1) | (carry >> 7)
+            carry = b71[i] & 0x80
+        }
+        payload[9] = 0
+        return payload
     }
 }

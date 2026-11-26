@@ -16,7 +16,7 @@ enum RadioModeID: String, CaseIterable, Identifiable, Codable, Hashable, Sendabl
     }
 
     var supportsReceive: Bool { self == .robot36 || self == .ft8 }
-    var supportsTransmit: Bool { self == .robot36 }
+    var supportsTransmit: Bool { self == .robot36 || self == .ft8 }
 
     var isTextMode: Bool { self == .ft8 || self == .rtty }
 }
@@ -35,7 +35,7 @@ struct ModemDescriptor: Identifiable, Hashable {
 
     static let all: [ModemDescriptor] = [
         .init(id: .robot36, outputKind: .picture, nominalSampleRate: 12_000, receiveEnabled: true, transmitEnabled: true),
-        .init(id: .ft8, outputKind: .text, nominalSampleRate: 12_000, receiveEnabled: true, transmitEnabled: false),
+        .init(id: .ft8, outputKind: .text, nominalSampleRate: 12_000, receiveEnabled: true, transmitEnabled: true),
         .init(id: .rtty, outputKind: .text, nominalSampleRate: 12_000, receiveEnabled: false, transmitEnabled: false)
     ]
 }

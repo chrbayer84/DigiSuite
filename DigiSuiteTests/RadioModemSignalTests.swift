@@ -2,6 +2,34 @@ import XCTest
 @testable import DigiSuite
 
 final class RadioModemSignalTests: XCTestCase {
+    func testFT8MessageRoundTrip() {
+        let cases = [
+            "CQ W9XYZ EN37",
+            "W9XYZ K1ABC -05",
+            "W9XYZ K1ABC R-12",
+            "W9XYZ K1ABC RR73",
+            "W9XYZ K1ABC 73",
+            "HELLO WORLD"
+        ]
+        for text in cases {
+            guard let payload = FT8Message.encode(text) else {
+                XCTFail("Could not encode FT8 message: \(text)")
+                continue
+            }
+            var hashes = [UInt32: String]()
+            let decoded = FT8Message.decode(payload, hashes: &hashes)
+            XCTAssertEqual(decoded, text, "FT8 round-trip mismatch for \(text)")
+        }
+    }
+
+    func testFT8EncoderProduces79SymbolsOfAudio() {
+        let sampleRate = 12_000.0
+        let samples = try? FT8Encoder.encode(message: "CQ W9XYZ EN37", sampleRate: sampleRate, amplitude: 0.35)
+        XCTAssertNotNil(samples)
+        let expected = Int((FT8Constants.symbolPeriod * Double(FT8Constants.nn) * sampleRate).rounded())
+        XCTAssertEqual(samples?.count, expected)
+    }
+
     func testSpectrumAnalyzerFinds1500HzToneAcrossChunkBoundaries() {
         let analyzer = SpectrumAnalyzer(sampleRate: 12_000, transformSize: 256, hopSize: 384)
         let audio = tone(frequency: 1_500, duration: 0.032, amplitude: 0.8)

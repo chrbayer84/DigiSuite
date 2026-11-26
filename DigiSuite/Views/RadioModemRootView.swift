@@ -131,6 +131,7 @@ final class RadioModemViewModel: ObservableObject {
     private let capture = RadioAudioCaptureService()
     private let player = RadioAudioPlayer()
     private let transmitter = Robot36Transmitter()
+    private let ft8Transmitter = FT8Transmitter()
     private let receivePipeline = RadioReceivePipeline()
     private let locationService = LocationService()
     private var activePictureID: UUID?
@@ -274,6 +275,48 @@ final class RadioModemViewModel: ObservableObject {
                                          self?.status = .error(error.localizedDescription)
                                      }
                                  })
+            }
+        }
+    }
+
+    func transmitFT8(message: String) {
+        guard selectedMode == .ft8, !transmitting else { return }
+        if listening { stopReceive() }
+        transmitting = true
+        status = .synchronizing
+        let transmitter = self.ft8Transmitter
+        let rightToneHz: Double? = pttToneEnabled ? pttToneFrequency : nil
+        DispatchQueue.global(qos: .userInitiated).async { [weak self, transmitter] in
+            let samples = (try? transmitter.encode(message, sampleRate: 12_000, amplitude: 0.35)) ?? []
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                guard self.transmitting else { return }
+                guard !samples.isEmpty else {
+                    self.transmitting = false
+                    self.errorMessage = "Could not encode the FT8 message."
+                    return
+                }
+                let now = Date().timeIntervalSince1970
+                let boundary = ceil(now / 15.0) * 15.0
+                let delay = max(0, boundary - now)
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    guard let self, self.transmitting else { return }
+                    self.status = .receiving(mode: "Transmitting FT8", line: 0, totalLines: 0)
+                    self.player.play(left: samples, rightToneHz: rightToneHz, sampleRate: 12_000,
+                                     completion: { [weak self] in
+                                         DispatchQueue.main.async {
+                                             self?.transmitting = false
+                                             self?.status = .complete("FT8 message sent")
+                                         }
+                                     },
+                                     failure: { [weak self] error in
+                                         DispatchQueue.main.async {
+                                             self?.transmitting = false
+                                             self?.errorMessage = error.localizedDescription
+                                             self?.status = .error(error.localizedDescription)
+                                         }
+                                     })
+                }
             }
         }
     }
@@ -604,6 +647,7 @@ private struct TransmitTab: View {
     @State private var image: UIImage?
     @State private var overlay = TextOverlayConfig()
     @State private var showOverlayEditor = false
+    @State private var ft8Message = ""
 
     private var preview: UIImage? {
         guard let image else { return nil }
@@ -620,31 +664,48 @@ private struct TransmitTab: View {
                         }
                     }
                 }
-                Section("Robot 36 image") {
-                    PhotosPicker(selection: $selection, matching: .images) {
-                        Label(image == nil ? "Choose image" : "Choose another image", systemImage: "photo")
+
+                if model.selectedMode == .ft8 {
+                    Section("FT8 message") {
+                        TextField("Message", text: $ft8Message)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                        Text("Transmitted at the next 15-second UTC slot. Example: CQ \(model.callsign) \(model.gridsquare)")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    if let preview {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Preview").font(.caption).foregroundStyle(.secondary)
-                            Image(uiImage: preview).resizable().aspectRatio(4.0/3.0, contentMode: .fit)
+                } else {
+                    Section("Robot 36 image") {
+                        PhotosPicker(selection: $selection, matching: .images) {
+                            Label(image == nil ? "Choose image" : "Choose another image", systemImage: "photo")
+                        }
+                        if let preview {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Preview").font(.caption).foregroundStyle(.secondary)
+                                Image(uiImage: preview).resizable().aspectRatio(4.0/3.0, contentMode: .fit)
+                            }
                         }
                     }
-                }
-                Section {
-                    Button {
-                        overlay.callsign = model.callsign
-                        overlay.gridsquare = model.gridsquare
-                        showOverlayEditor = true
-                    } label: {
-                        Label("Edit overlay", systemImage: "textformat")
+                    Section {
+                        Button {
+                            overlay.callsign = model.callsign
+                            overlay.gridsquare = model.gridsquare
+                            showOverlayEditor = true
+                        } label: {
+                            Label("Edit overlay", systemImage: "textformat")
+                        }
+                        .disabled(image == nil)
                     }
-                    .disabled(image == nil)
                 }
+
                 Section {
                     Button {
-                        if model.transmitting { model.stopTransmit() }
-                        else if let image { model.transmit(image: image, overlay: overlay) }
+                        if model.transmitting {
+                            model.stopTransmit()
+                        } else if model.selectedMode == .ft8 {
+                            model.transmitFT8(message: ft8Message)
+                        } else if let image {
+                            model.transmit(image: image, overlay: overlay)
+                        }
                     } label: {
                         Text("TX")
                             .foregroundStyle(.white)
@@ -654,7 +715,10 @@ private struct TransmitTab: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
-                    .disabled(image == nil && !model.transmitting)
+                    .disabled(!model.transmitting && (
+                        (model.selectedMode == .robot36 && image == nil) ||
+                        (model.selectedMode == .ft8 && ft8Message.trimmingCharacters(in: .whitespaces).isEmpty)
+                    ))
                     Text("Audio plays through the active iOS output route. Radio PTT is not configured.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -673,6 +737,9 @@ private struct TransmitTab: View {
             .onAppear {
                 if overlay.callsign.isEmpty { overlay.callsign = model.callsign }
                 if overlay.gridsquare.isEmpty { overlay.gridsquare = model.gridsquare }
+                if ft8Message.isEmpty, !model.callsign.isEmpty, !model.gridsquare.isEmpty {
+                    ft8Message = "CQ \(model.callsign) \(model.gridsquare)"
+                }
             }
             .sheet(isPresented: $showOverlayEditor) {
                 OverlayEditorView(config: $overlay, base: image)
@@ -874,7 +941,7 @@ private struct SettingsTab: View {
                 }
                 Section("Modems") {
                     LabeledContent("Robot 36 SSTV", value: "Receive and transmit")
-                    LabeledContent("FT8", value: "Receive")
+                    LabeledContent("FT8", value: "Receive and transmit")
                     LabeledContent("RTTY", value: "Architecture reserved")
                 }
             }

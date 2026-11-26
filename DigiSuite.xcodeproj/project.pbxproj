@@ -26,6 +26,7 @@
 		B1234567890ABCDEF1234636 /* FT8Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234635 /* FT8Constants.swift */; };
 		B1234567890ABCDEF1234638 /* FT8Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234637 /* FT8Message.swift */; };
 		B1234567890ABCDEF1234640 /* FT8Decoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234639 /* FT8Decoder.swift */; };
+		B1234567890ABCDEF1234642 /* FT8Encoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234641 /* FT8Encoder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		B1234567890ABCDEF1234635 /* FT8Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Constants.swift; sourceTree = "<group>"; };
 		B1234567890ABCDEF1234637 /* FT8Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Message.swift; sourceTree = "<group>"; };
 		B1234567890ABCDEF1234639 /* FT8Decoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Decoder.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234641 /* FT8Encoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Encoder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +137,7 @@
 				B1234567890ABCDEF1234635 /* FT8Constants.swift */,
 				B1234567890ABCDEF1234637 /* FT8Message.swift */,
 				B1234567890ABCDEF1234639 /* FT8Decoder.swift */,
+				B1234567890ABCDEF1234641 /* FT8Encoder.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -269,6 +272,7 @@
 				B1234567890ABCDEF1234636 /* FT8Constants.swift in Sources */,
 				B1234567890ABCDEF1234638 /* FT8Message.swift in Sources */,
 				B1234567890ABCDEF1234640 /* FT8Decoder.swift in Sources */,
+				B1234567890ABCDEF1234642 /* FT8Encoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
