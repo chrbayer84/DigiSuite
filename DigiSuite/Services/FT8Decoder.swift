@@ -124,8 +124,10 @@ final class FT8Decoder: ReceiveModem {
 
         let texts = decodeWindow(window)
         var events: [ReceiveEvent] = []
-        for text in texts {
-            events.append(.decodedText(DecodedText(mode: .ft8, receivedAt: Date(timeIntervalSince1970: slotStart), text: text)))
+        for (text, snr) in texts {
+            events.append(.decodedText(DecodedText(mode: .ft8,
+                                                   receivedAt: Date(timeIntervalSince1970: slotStart),
+                                                   text: text, snr: snr)))
         }
         return events
     }
@@ -139,21 +141,56 @@ final class FT8Decoder: ReceiveModem {
 
     // MARK: - Decode a window of rows
 
-    private func decodeWindow(_ window: [[Float]]) -> [String] {
+    private func decodeWindow(_ window: [[Float]]) -> [(text: String, snr: Int?)] {
         guard window.count >= symbolsPerMessage else { return [] }
 
         let candidates = findCandidates(window)
-        var results: [String] = []
+        let noise = waterfallNoise(window)
+        var results: [(text: String, snr: Int?)] = []
         var seen: Set<String> = []
         for candidate in candidates {
             if results.count >= maxCandidates { break }
-            guard let text = decodeCandidate(window, candidate) else { continue }
+            guard let (text, payload) = decodeCandidate(window, candidate) else { continue }
             if !text.isEmpty && !seen.contains(text) {
                 seen.insert(text)
-                results.append(text)
+                let tones = FT8Encoder.tonesForPayload(payload)
+                let snr = Int(signalSnr(window, candidate: candidate, tones: tones, noise: noise).rounded())
+                results.append((text, snr))
             }
         }
         return results
+    }
+
+    /// Median cell power (linear) over the whole slot, as the SNR noise floor.
+    private func waterfallNoise(_ window: [[Float]]) -> Float {
+        var values: [Float] = []
+        values.reserveCapacity(window.count * numBins)
+        for row in window { values.append(contentsOf: row) }
+        guard !values.isEmpty else { return Float(pow(10.0, -12.0)) }
+        values.sort()
+        let medianDB = values[values.count / 2]
+        return Float(pow(10.0, Double(medianDB) / 10.0))
+    }
+
+    /// Signal-to-noise ratio in dB, referenced to a 2500 Hz bandwidth (as WSJT-X
+    /// reports it), from the average cell power over the message's 79 tones.
+    private func signalSnr(_ window: [[Float]], candidate: Candidate, tones: [UInt8], noise: Float) -> Float {
+        var sum = 0.0
+        var n = 0
+        for k in 0..<tones.count {
+            let row = candidate.timeOffset + k
+            let bin = candidate.freqOffset + Int(tones[k])
+            if row < 0 || row >= window.count || bin < 0 || bin >= numBins { continue }
+            sum += pow(10.0, Double(window[row][bin]) / 10.0)
+            n += 1
+        }
+        guard n > 0, noise > 0 else { return -30 }
+        var signal = Float(sum / Double(n)) - noise
+        if signal < noise * 0.001 { signal = noise * 0.001 }
+        let snr = 10 * log10(Double(signal) / Double(noise))
+            - 10 * log10(2500.0 * FT8Constants.symbolPeriod)
+            - 5.0
+        return Float(max(-30, snr))
     }
 
     private struct Candidate {
@@ -211,7 +248,7 @@ final class FT8Decoder: ReceiveModem {
 
     // MARK: - Decode a candidate
 
-    private func decodeCandidate(_ window: [[Float]], _ candidate: Candidate) -> String? {
+    private func decodeCandidate(_ window: [[Float]], _ candidate: Candidate) -> (text: String, payload: [UInt8])? {
         var log174 = [Float](repeating: 0, count: FT8Constants.ldpcN)
 
         for k in 0..<FT8Constants.nd {
@@ -241,7 +278,7 @@ final class FT8Decoder: ReceiveModem {
         guard extractedCRC == calculatedCRC else { return nil }
 
         let payload = Array(a91.prefix(10))
-        return FT8Message.decode(payload, hashes: &hashes)
+        return (FT8Message.decode(payload, hashes: &hashes), payload)
     }
 
     private func extractSymbol(_ row: [Float], freqOffset: Int, logl: inout [Float], bitIdx: Int) {

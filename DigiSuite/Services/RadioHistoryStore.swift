@@ -17,6 +17,7 @@ final class RadioHistoryStore: ObservableObject {
         var imageFile: String?
         var message: String?
         var frequencyHz: Int?
+        var snr: Int?
     }
 
     private let directory: URL
@@ -41,7 +42,7 @@ final class RadioHistoryStore: ObservableObject {
                 }
                 if entry.kind == "text", let message = entry.message {
                     return .text(DecodedText(id: entry.id, mode: entry.mode, receivedAt: entry.date,
-                                             text: message, frequencyHz: entry.frequencyHz))
+                                             text: message, frequencyHz: entry.frequencyHz, snr: entry.snr))
                 }
                 return nil
             }.sorted { $0.date > $1.date }
@@ -75,11 +76,11 @@ final class RadioHistoryStore: ObservableObject {
                     return StoredEntry(kind: "picture", id: picture.id, mode: picture.mode, date: picture.startedAt,
                                        width: picture.width, height: picture.height, complete: picture.complete,
                                        offsetHz: picture.frequencyOffsetHz, imageFile: "\(picture.id.uuidString).rgba",
-                                       message: nil, frequencyHz: nil)
+                                       message: nil, frequencyHz: nil, snr: nil)
                 case .text(let message):
                     return StoredEntry(kind: "text", id: message.id, mode: message.mode, date: message.receivedAt,
                                        width: nil, height: nil, complete: nil, offsetHz: nil, imageFile: nil,
-                                       message: message.text, frequencyHz: message.frequencyHz)
+                                       message: message.text, frequencyHz: message.frequencyHz, snr: message.snr)
                 }
             }
             let data = try encoder.encode(entries)

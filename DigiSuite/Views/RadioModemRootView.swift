@@ -126,6 +126,78 @@ final class RadioModemViewModel: ObservableObject {
     }
     @Published var isResolvingLocation = false
     @Published var locationError: String?
+    @Published var dxCallsign = ""
+    @Published var report = "-05"
+    @Published var txMessageNumber = 1
+    @Published private(set) var selectedTab = 0
+
+    var ft8TXMessage: String { ft8Message(for: txMessageNumber) }
+
+    /// TX1–TX6 templates, filled with my call/grid, the DX call and the report.
+    func ft8Message(for number: Int) -> String {
+        let my = callsign.trimmingCharacters(in: .whitespaces)
+        let myCall = my.isEmpty ? "<MYCALL>" : my
+        let gridRaw = gridsquare.trimmingCharacters(in: .whitespaces)
+        let grid = gridRaw.isEmpty ? "<MYGRID>" : gridRaw
+        let dxRaw = dxCallsign.trimmingCharacters(in: .whitespaces)
+        let dx = dxRaw.isEmpty ? "<DXCALL>" : dxRaw.uppercased()
+        let rptRaw = report.trimmingCharacters(in: .whitespaces)
+        let rpt = rptRaw.isEmpty ? "-05" : rptRaw
+        switch number {
+        case 1: return "CQ \(myCall) \(grid)"
+        case 2: return "\(dx) \(myCall) \(rpt)"
+        case 3: return "\(dx) \(myCall) R\(rpt)"
+        case 4: return "\(dx) \(myCall) RR73"
+        case 5: return "\(dx) \(myCall) 73"
+        default: return "CQ DX \(myCall) \(grid)"
+        }
+    }
+
+    func selectTab(_ index: Int) {
+        selectedTab = index
+    }
+
+    /// Tapping a decoded message fills the DX callsign and report, then shows Transmit.
+    func prepareReply(to message: DecodedText) {
+        if let dx = Self.extractDXCallsign(from: message.text, myCall: callsign) {
+            dxCallsign = dx
+        }
+        if let snr = message.snr {
+            report = String(format: "%+03d", Int32(clamping: snr))
+        }
+        txMessageNumber = 2
+        selectedTab = 1
+    }
+
+    static func extractDXCallsign(from text: String, myCall: String) -> String? {
+        let tokens = text.split(separator: " ").map(String.init)
+        guard !tokens.isEmpty else { return nil }
+        if tokens[0] == "CQ" {
+            for token in tokens.dropFirst() where isCallsignLike(token) {
+                return token.trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
+            }
+            return nil
+        }
+        if tokens.count >= 2 {
+            let sender = tokens[1]
+            let chosen = (sender == myCall && !tokens[0].isEmpty) ? tokens[0] : sender
+            return chosen.trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
+        }
+        return nil
+    }
+
+    private static func isCallsignLike(_ token: String) -> Bool {
+        let stripped = token.trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
+        let chars = Array(stripped)
+        guard chars.contains(where: { $0.isLetter }), chars.contains(where: { $0.isNumber }) else { return false }
+        if chars.count == 4,
+           chars[0] >= "A", chars[0] <= "R",
+           chars[1] >= "A", chars[1] <= "R",
+           chars[2].isNumber, chars[3].isNumber {
+            return false  // a grid square, not a callsign
+        }
+        return true
+    }
 
     let history = RadioHistoryStore()
     private let capture = RadioAudioCaptureService()
@@ -454,15 +526,22 @@ struct RadioModemRootView: View {
     @StateObject private var model = RadioModemViewModel()
 
     var body: some View {
-        TabView {
-            ReceiveTab(model: model)
+        TabView(selection: Binding(
+            get: { model.selectedTab },
+            set: { model.selectTab($0) }
+        )) {
+            ReceiveTab(model: model, onSelectMessage: { model.prepareReply(to: $0) })
                 .tabItem { Label("Receive", systemImage: "waveform") }
+                .tag(0)
             TransmitTab(model: model)
                 .tabItem { Label("Transmit", systemImage: "antenna.radiowaves.left.and.right") }
+                .tag(1)
             HistoryTab(store: model.history)
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+                .tag(2)
             SettingsTab(model: model)
                 .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(3)
         }
         .tint(.cyan)
         .preferredColorScheme(.dark)
@@ -527,6 +606,7 @@ private struct RadioButtonLabel: View {
 
 private struct ReceiveTab: View {
     @ObservedObject var model: RadioModemViewModel
+    var onSelectMessage: (DecodedText) -> Void
 
     var body: some View {
         NavigationStack {
@@ -587,25 +667,56 @@ private struct ReceiveTab: View {
         VStack(alignment: .leading, spacing: 8) {
             paneTitle("Decoded", detail: model.decodedMessages.isEmpty ? "Waiting for a message" : "\(model.decodedMessages.count) message(s)")
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 6) {
+                LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(model.decodedMessages) { message in
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(message.receivedAt.formatted(date: .omitted, time: .standard))
-                                .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
-                            Text(message.text)
+                                .font(.caption).foregroundStyle(.gray).monospacedDigit()
+                            if let snr = message.snr {
+                                Text("\(snr) dB")
+                                    .font(.caption).foregroundStyle(.gray).monospacedDigit()
+                                    .frame(minWidth: 44, alignment: .trailing)
+                            }
+                            Text(Self.highlighted(message.text, myCall: model.callsign))
                                 .font(.system(.body, design: .monospaced))
-                                .foregroundStyle(.cyan)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture { onSelectMessage(message) }
                     }
                 }
                 .padding(10)
             }
-            .background(Color.black.opacity(0.3))
+            .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.12)))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray, lineWidth: 1))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Renders the message with the operator's own callsign highlighted red (white
+    /// text), as WSJT-X does for messages mentioning your call.
+    static func highlighted(_ text: String, myCall: String) -> AttributedString {
+        let target = myCall.trimmingCharacters(in: .whitespaces).uppercased()
+        let tokens = text.split(separator: " ", omittingEmptySubsequences: false)
+        var result = AttributedString("")
+        for (index, token) in tokens.enumerated() {
+            var piece = AttributedString(String(token))
+            let bare = String(token).trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
+            if !target.isEmpty && bare.uppercased() == target {
+                piece.backgroundColor = .red
+                piece.foregroundColor = .white
+            } else {
+                piece.foregroundColor = .black
+            }
+            result.append(piece)
+            if index < tokens.count - 1 {
+                var space = AttributedString(" ")
+                space.foregroundColor = .black
+                result.append(space)
+            }
+        }
+        return result
     }
 
     private var picturePane: some View {
@@ -690,7 +801,6 @@ private struct TransmitTab: View {
     @State private var image: UIImage?
     @State private var overlay = TextOverlayConfig()
     @State private var showOverlayEditor = false
-    @State private var ft8Message = ""
 
     private var preview: UIImage? {
         guard let image else { return nil }
@@ -710,10 +820,21 @@ private struct TransmitTab: View {
 
                 if model.selectedMode == .ft8 {
                     Section("FT8 message") {
-                        TextField("Message", text: $ft8Message)
+                        Picker("TX message", selection: $model.txMessageNumber) {
+                            ForEach(1...6, id: \.self) { number in
+                                Text("TX\(number): \(model.ft8Message(for: number))").tag(number)
+                            }
+                        }
+                        TextField("DX callsign", text: $model.dxCallsign)
                             .textInputAutocapitalization(.characters)
                             .autocorrectionDisabled()
-                        Text("Transmitted at the next 15-second UTC slot. Example: CQ \(model.callsign) \(model.gridsquare)")
+                        TextField("Report", text: $model.report)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Text(model.ft8TXMessage)
+                            .font(.system(.footnote, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text("Transmitted at the next 15-second UTC slot. Tap a decoded message to fill the DX call and report.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 } else {
@@ -745,7 +866,7 @@ private struct TransmitTab: View {
                         if model.transmitting {
                             model.stopTransmit()
                         } else if model.selectedMode == .ft8 {
-                            model.transmitFT8(message: ft8Message)
+                            model.transmitFT8(message: model.ft8TXMessage)
                         } else if let image {
                             model.transmit(image: image, overlay: overlay)
                         }
@@ -755,7 +876,7 @@ private struct TransmitTab: View {
                     .buttonStyle(.plain)
                     .disabled(!model.transmitting && (
                         (model.selectedMode == .robot36 && image == nil) ||
-                        (model.selectedMode == .ft8 && ft8Message.trimmingCharacters(in: .whitespaces).isEmpty)
+                        (model.selectedMode == .ft8 && model.callsign.trimmingCharacters(in: .whitespaces).isEmpty)
                     ))
                     Text("Audio plays through the active iOS output route. Radio PTT is not configured.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -780,9 +901,6 @@ private struct TransmitTab: View {
             .onAppear {
                 if overlay.callsign.isEmpty { overlay.callsign = model.callsign }
                 if overlay.gridsquare.isEmpty { overlay.gridsquare = model.gridsquare }
-                if ft8Message.isEmpty, !model.callsign.isEmpty, !model.gridsquare.isEmpty {
-                    ft8Message = "CQ \(model.callsign) \(model.gridsquare)"
-                }
             }
             .sheet(isPresented: $showOverlayEditor) {
                 OverlayEditorView(config: $overlay, base: image)

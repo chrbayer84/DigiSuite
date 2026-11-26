@@ -84,13 +84,16 @@ struct DecodedText: Identifiable, Codable, Equatable, Sendable {
     let receivedAt: Date
     let text: String
     var frequencyHz: Int?
+    var snr: Int?
 
-    init(id: UUID = UUID(), mode: RadioModeID, receivedAt: Date = .now, text: String, frequencyHz: Int? = nil) {
+    init(id: UUID = UUID(), mode: RadioModeID, receivedAt: Date = .now, text: String,
+         frequencyHz: Int? = nil, snr: Int? = nil) {
         self.id = id
         self.mode = mode
         self.receivedAt = receivedAt
         self.text = text
         self.frequencyHz = frequencyHz
+        self.snr = snr
     }
 }
 
