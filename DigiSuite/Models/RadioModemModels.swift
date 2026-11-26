@@ -10,7 +10,7 @@ enum RadioModeID: String, CaseIterable, Identifiable, Codable, Hashable, Sendabl
     var title: String {
         switch self {
         case .robot36: return "Robot 36 SSTV"
-        case .ft8: return "FT8 (planned)"
+        case .ft8: return "FT8"
         case .rtty: return "RTTY (planned)"
         }
     }

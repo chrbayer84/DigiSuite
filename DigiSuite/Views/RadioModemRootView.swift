@@ -440,19 +440,17 @@ struct RadioModemRootView: View {
 
 private struct ReceiveTab: View {
     @ObservedObject var model: RadioModemViewModel
-    @State private var mode: RadioModeID = .robot36
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
                 HStack {
-                    Picker("Mode", selection: $mode) {
+                    Picker("Mode", selection: $model.selectedMode) {
                         ForEach(ModemDescriptor.all) { modem in
                             Text(modem.id.title).tag(modem.id).disabled(!modem.receiveEnabled)
                         }
                     }
                     .pickerStyle(.menu)
-                    .onChange(of: mode) { _, value in model.selectedMode = value }
                     Spacer()
                     Button {
                         model.listening ? model.stopReceive() : model.startReceive()
@@ -872,11 +870,12 @@ private struct SettingsTab: View {
                 }
                 Section("History") {
                     LabeledContent("Storage", value: "On this device")
-                    LabeledContent("Text modem history", value: "Ready for future modes")
+                    LabeledContent("Text modem history", value: "Decoded FT8 messages are stored locally")
                 }
                 Section("Modems") {
                     LabeledContent("Robot 36 SSTV", value: "Receive and transmit")
-                    LabeledContent("FT8 / RTTY", value: "Architecture reserved")
+                    LabeledContent("FT8", value: "Receive")
+                    LabeledContent("RTTY", value: "Architecture reserved")
                 }
             }
             .navigationTitle("Settings")
