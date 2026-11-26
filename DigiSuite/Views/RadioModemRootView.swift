@@ -822,7 +822,7 @@ private struct TransmitTab: View {
                     Section("FT8 message") {
                         Picker("TX message", selection: $model.txMessageNumber) {
                             ForEach(1...6, id: \.self) { number in
-                                Text("TX\(number): \(model.ft8Message(for: number))").tag(number)
+                                Text(model.ft8Message(for: number)).tag(number)
                             }
                         }
                         TextField("DX callsign", text: $model.dxCallsign)
