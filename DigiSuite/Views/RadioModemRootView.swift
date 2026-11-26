@@ -333,11 +333,10 @@ final class RadioModemViewModel: ObservableObject {
     private static func overlayRGBA(base: UIImage, config: TextOverlayConfig) -> Data? {
         let width = 320
         let height = 240
-        let header = [config.callsign.trimmingCharacters(in: .whitespaces),
-                      config.gridsquare.trimmingCharacters(in: .whitespaces)]
-            .filter { !$0.isEmpty }.joined(separator: " ")
+        let callsign = config.callsign.trimmingCharacters(in: .whitespaces)
+        let gridsquare = config.gridsquare.trimmingCharacters(in: .whitespaces)
         let message = config.message.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !header.isEmpty || !message.isEmpty else {
+        guard !callsign.isEmpty || !gridsquare.isEmpty || !message.isEmpty else {
             return rgbaData(base, width: width, height: height)
         }
         let size = CGSize(width: width, height: height)
@@ -355,14 +354,22 @@ final class RadioModemViewModel: ObservableObject {
             let origin = CGPoint(x: config.headerPosition.x * CGFloat(width),
                                  y: config.headerPosition.y * CGFloat(height))
             var nextY = origin.y
-            if !header.isEmpty {
-                let attrs: [NSAttributedString.Key: Any] = [.font: headerFont, .foregroundColor: textColor]
-                let textSize = header.size(withAttributes: attrs)
+            let lineAttrs: [NSAttributedString.Key: Any] = [.font: headerFont, .foregroundColor: textColor]
+            if !callsign.isEmpty {
+                let textSize = callsign.size(withAttributes: lineAttrs)
                 context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.6).cgColor)
-                context.cgContext.fill(CGRect(x: origin.x - 4, y: origin.y - 2,
+                context.cgContext.fill(CGRect(x: origin.x - 4, y: nextY - 2,
                                               width: textSize.width + 8, height: textSize.height + 4))
-                header.draw(at: origin, withAttributes: attrs)
-                nextY = origin.y + textSize.height + 4
+                callsign.draw(at: CGPoint(x: origin.x, y: nextY), withAttributes: lineAttrs)
+                nextY += textSize.height + 4
+            }
+            if !gridsquare.isEmpty {
+                let textSize = gridsquare.size(withAttributes: lineAttrs)
+                context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.6).cgColor)
+                context.cgContext.fill(CGRect(x: origin.x - 4, y: nextY - 2,
+                                              width: textSize.width + 8, height: textSize.height + 4))
+                gridsquare.draw(at: CGPoint(x: origin.x, y: nextY), withAttributes: lineAttrs)
+                nextY += textSize.height + 4
             }
             if !message.isEmpty {
                 let attrs: [NSAttributedString.Key: Any] = [.font: messageFont, .foregroundColor: textColor]
