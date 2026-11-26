@@ -481,6 +481,50 @@ struct RadioModemRootView: View {
     }
 }
 
+private struct UTCClock: View {
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            Text(Self.format(context.date))
+                .font(.system(.caption, design: .monospaced))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private static func format(_ date: Date) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+        let parts = calendar.dateComponents([.hour, .minute, .second], from: date)
+        return String(format: "%02d:%02d:%02d UTC",
+                      Int32(parts.hour ?? 0), Int32(parts.minute ?? 0), Int32(parts.second ?? 0))
+    }
+}
+
+/// RX/TX button label that clearly indicates the active (listening/transmitting)
+/// state: muted when idle, vivid with a white ring and glow when active.
+private struct RadioButtonLabel: View {
+    let text: String
+    let isActive: Bool
+    let color: Color
+    var fillWidth: Bool = false
+
+    var body: some View {
+        Text(text)
+            .font(.headline.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(minWidth: fillWidth ? nil : 56, maxWidth: fillWidth ? .infinity : nil)
+            .padding(.vertical, fillWidth ? 10 : 8)
+            .padding(.horizontal, fillWidth ? 0 : 14)
+            .background(isActive ? color : color.opacity(0.55))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(.white, lineWidth: isActive ? 2 : 0)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .shadow(color: isActive ? color.opacity(0.8) : .clear, radius: isActive ? 6 : 0)
+    }
+}
+
 private struct ReceiveTab: View {
     @ObservedObject var model: RadioModemViewModel
 
@@ -498,13 +542,7 @@ private struct ReceiveTab: View {
                     Button {
                         model.listening ? model.stopReceive() : model.startReceive()
                     } label: {
-                        Text("RX")
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 56)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 14)
-                            .background(Color.green)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        RadioButtonLabel(text: "RX", isActive: model.listening, color: .green)
                     }
                     .buttonStyle(.plain)
                     Button("Clear", systemImage: "trash") { model.clearReceive() }
@@ -528,6 +566,11 @@ private struct ReceiveTab: View {
             }
             .padding()
             .navigationTitle("Radio Modem")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    UTCClock()
+                }
+            }
         }
     }
 
@@ -707,12 +750,7 @@ private struct TransmitTab: View {
                             model.transmit(image: image, overlay: overlay)
                         }
                     } label: {
-                        Text("TX")
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.red)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        RadioButtonLabel(text: "TX", isActive: model.transmitting, color: .red, fillWidth: true)
                     }
                     .buttonStyle(.plain)
                     .disabled(!model.transmitting && (
