@@ -495,7 +495,7 @@ private struct UTCClock: View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
         let parts = calendar.dateComponents([.hour, .minute, .second], from: date)
-        return String(format: "%02d:%02d:%02d UTC",
+        return String(format: "%02d:%02d:%02dz",
                       Int32(parts.hour ?? 0), Int32(parts.minute ?? 0), Int32(parts.second ?? 0))
     }
 }
