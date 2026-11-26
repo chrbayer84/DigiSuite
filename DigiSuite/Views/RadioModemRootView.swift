@@ -762,6 +762,11 @@ private struct TransmitTab: View {
                 }
             }
             .navigationTitle("Transmit")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    UTCClock()
+                }
+            }
             .onChange(of: selection) { _, item in
                 Task {
                     guard let item else { return }
