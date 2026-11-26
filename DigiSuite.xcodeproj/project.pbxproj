@@ -23,6 +23,9 @@
 		B1234567890ABCDEF1234608 /* RadioModemSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234618 /* RadioModemSignalTests.swift */; };
 		B1234567890ABCDEF1234630 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234631 /* XCTest.framework */; };
 		B1234567890ABCDEF1234634 /* RadioReceivePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234633 /* RadioReceivePipeline.swift */; };
+		B1234567890ABCDEF1234636 /* FT8Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234635 /* FT8Constants.swift */; };
+		B1234567890ABCDEF1234638 /* FT8Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234637 /* FT8Message.swift */; };
+		B1234567890ABCDEF1234640 /* FT8Decoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234639 /* FT8Decoder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +48,9 @@
 		B1234567890ABCDEF1234619 /* DigiSuiteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DigiSuiteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1234567890ABCDEF1234631 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		B1234567890ABCDEF1234633 /* RadioReceivePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioReceivePipeline.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234635 /* FT8Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Constants.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234637 /* FT8Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Message.swift; sourceTree = "<group>"; };
+		B1234567890ABCDEF1234639 /* FT8Decoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FT8Decoder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +132,9 @@
 				B1234567890ABCDEF1234615 /* Robot36Decoder.swift */,
 				B1234567890ABCDEF1234616 /* Robot36Encoder.swift */,
 				B1234567890ABCDEF1234633 /* RadioReceivePipeline.swift */,
+				B1234567890ABCDEF1234635 /* FT8Constants.swift */,
+				B1234567890ABCDEF1234637 /* FT8Message.swift */,
+				B1234567890ABCDEF1234639 /* FT8Decoder.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -257,6 +266,9 @@
 				B1234567890ABCDEF1234606 /* Robot36Encoder.swift in Sources */,
 				B1234567890ABCDEF1234607 /* RadioModemRootView.swift in Sources */,
 				B1234567890ABCDEF1234634 /* RadioReceivePipeline.swift in Sources */,
+				B1234567890ABCDEF1234636 /* FT8Constants.swift in Sources */,
+				B1234567890ABCDEF1234638 /* FT8Message.swift in Sources */,
+				B1234567890ABCDEF1234640 /* FT8Decoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

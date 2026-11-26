@@ -122,6 +122,7 @@ final class RadioAudioCaptureService {
     private var resampler = StreamingAudioResampler()
     private var inputRate: Double = 0
     private var totalOutputSamples: Int64 = 0
+    private var streamStartDate = Date()
     private var running = false
     private var observers: [NSObjectProtocol] = []
     var onAudio: ((AudioChunk) -> Void)?
@@ -160,6 +161,7 @@ final class RadioAudioCaptureService {
         ring.clear()
         resampler.reset(sourceRate: inputRate)
         totalOutputSamples = 0
+        streamStartDate = Date()
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             guard let self, let channels = buffer.floatChannelData else { return }
             self.ring.write(channels[0], count: Int(buffer.frameLength))
@@ -200,7 +202,8 @@ final class RadioAudioCaptureService {
             guard !input.isEmpty else { return }
             let output = self.resampler.process(input, sampleRate: self.inputRate)
             guard !output.isEmpty else { return }
-            let chunk = AudioChunk(samples: output, sampleRate: 12_000, startSample: self.totalOutputSamples)
+            let startDate = self.streamStartDate.addingTimeInterval(Double(self.totalOutputSamples) / 12_000)
+            let chunk = AudioChunk(samples: output, sampleRate: 12_000, startSample: self.totalOutputSamples, startDate: startDate)
             self.totalOutputSamples += Int64(output.count)
             self.onAudio?(chunk)
         }

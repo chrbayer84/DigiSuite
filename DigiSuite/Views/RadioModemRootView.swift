@@ -106,6 +106,7 @@ final class RadioModemViewModel: ObservableObject {
     @Published var liveImage: UIImage?
     @Published private(set) var pictureOffsetHz = 0
     @Published var waterfallRows: [[Float]] = []
+    @Published var decodedMessages: [DecodedText] = []
     @Published var inputName = "No input"
     @Published var errorMessage: String?
     @Published var pttToneEnabled: Bool = UserDefaults.standard.bool(forKey: "pttToneEnabled") {
@@ -171,15 +172,16 @@ final class RadioModemViewModel: ObservableObject {
 
     func startReceive() {
         guard !listening else { return }
-        guard selectedMode == .robot36 else { return }
+        guard selectedMode.supportsReceive else { return }
         RadioAudioCaptureService.requestPermission { [weak self] allowed in
             DispatchQueue.main.async {
                 guard let self else { return }
                 guard allowed else {
-                    self.errorMessage = "Microphone access is required to receive SSTV. Enable it in Settings."
+                    self.errorMessage = "Microphone access is required to receive. Enable it in Settings."
                     self.status = .error("Microphone permission denied")
                     return
                 }
+                self.receivePipeline.setMode(self.selectedMode)
                 self.apply(self.receivePipeline.reset())
                 self.waterfallRows.removeAll()
                 self.activePictureID = nil
@@ -213,6 +215,7 @@ final class RadioModemViewModel: ObservableObject {
         activePictureID = nil
         liveImage = nil
         imageBytes = Data(repeating: 0, count: 320 * 240 * 4)
+        decodedMessages.removeAll()
         waterfallRows.removeAll()
         status = listening ? .listening : .idle
     }
@@ -301,6 +304,9 @@ final class RadioModemViewModel: ObservableObject {
             case .pictureFinished(let picture):
                 activePictureID = nil
                 history.add(.picture(picture))
+            case .decodedText(let message):
+                decodedMessages.append(message)
+                history.add(.text(message))
             }
         }
     }
@@ -466,15 +472,49 @@ private struct ReceiveTab: View {
                 }
                 GeometryReader { geometry in
                     if geometry.size.width >= 680 {
-                        HStack(spacing: 12) { picturePane; waterfallPane }
+                        HStack(spacing: 12) { outputPane; waterfallPane }
                     } else {
-                        VStack(spacing: 12) { picturePane; waterfallPane }
+                        VStack(spacing: 12) { outputPane; waterfallPane }
                     }
                 }
             }
             .padding()
             .navigationTitle("Radio Modem")
         }
+    }
+
+    @ViewBuilder
+    private var outputPane: some View {
+        if model.selectedMode.isTextMode {
+            textPane
+        } else {
+            picturePane
+        }
+    }
+
+    private var textPane: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            paneTitle("Decoded", detail: model.decodedMessages.isEmpty ? "Waiting for a message" : "\(model.decodedMessages.count) message(s)")
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 6) {
+                    ForEach(model.decodedMessages) { message in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(message.receivedAt.formatted(date: .omitted, time: .standard))
+                                .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                            Text(message.text)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundStyle(.cyan)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(10)
+            }
+            .background(Color.black.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.12)))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var picturePane: some View {
@@ -523,7 +563,7 @@ private struct ReceiveTab: View {
     private func statusLabel(_ status: ModemStatus) -> String {
         switch status {
         case .idle: return "Idle"
-        case .listening: return "Listening for Robot 36"
+        case .listening: return "Listening for \(model.selectedMode.title)"
         case .synchronizing: return "Synchronizing"
         case .receiving(let mode, let line, let total): return "\(mode) · line \(line)/\(total)"
         case .complete(let text): return text

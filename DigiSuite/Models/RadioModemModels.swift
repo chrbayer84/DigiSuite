@@ -15,8 +15,10 @@ enum RadioModeID: String, CaseIterable, Identifiable, Codable, Hashable, Sendabl
         }
     }
 
-    var supportsReceive: Bool { self == .robot36 }
+    var supportsReceive: Bool { self == .robot36 || self == .ft8 }
     var supportsTransmit: Bool { self == .robot36 }
+
+    var isTextMode: Bool { self == .ft8 || self == .rtty }
 }
 
 struct ModemDescriptor: Identifiable, Hashable {
@@ -33,7 +35,7 @@ struct ModemDescriptor: Identifiable, Hashable {
 
     static let all: [ModemDescriptor] = [
         .init(id: .robot36, outputKind: .picture, nominalSampleRate: 12_000, receiveEnabled: true, transmitEnabled: true),
-        .init(id: .ft8, outputKind: .text, nominalSampleRate: 12_000, receiveEnabled: false, transmitEnabled: false),
+        .init(id: .ft8, outputKind: .text, nominalSampleRate: 12_000, receiveEnabled: true, transmitEnabled: false),
         .init(id: .rtty, outputKind: .text, nominalSampleRate: 12_000, receiveEnabled: false, transmitEnabled: false)
     ]
 }
@@ -42,6 +44,14 @@ struct AudioChunk: Sendable {
     let samples: [Float]
     let sampleRate: Double
     let startSample: Int64
+    let startDate: Date
+
+    init(samples: [Float], sampleRate: Double, startSample: Int64, startDate: Date = .now) {
+        self.samples = samples
+        self.sampleRate = sampleRate
+        self.startSample = startSample
+        self.startDate = startDate
+    }
 }
 
 struct RadioPicture: Identifiable, Codable, Equatable, Sendable {
@@ -98,6 +108,7 @@ enum ReceiveEvent: Sendable {
     case pictureStarted(id: UUID, title: String, width: Int, height: Int, offsetHz: Int)
     case pictureRows(id: UUID, from: Int, count: Int, rgba: Data)
     case pictureFinished(RadioPicture)
+    case decodedText(DecodedText)
 }
 
 protocol ReceiveModem: AnyObject {
