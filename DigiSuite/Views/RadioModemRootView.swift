@@ -418,6 +418,7 @@ final class RadioModemViewModel: ObservableObject {
                 }
             case .pictureFinished(let picture):
                 activePictureID = nil
+                liveImage = Self.makeImage(picture.rgba, width: picture.width, height: picture.height)
                 history.add(.picture(picture))
             case .decodedText(let message):
                 decodedMessages.append(message)

@@ -29,8 +29,11 @@ final class Robot36Decoder: ReceiveModem {
     private var decodedLines = 0
     private var senderOffset: Float = 0
     private var pictureStartedAt = Date.now
-    private var linePeriodFrames: Double = 150
-    private var linePoints: [(Double, Double)] = []
+    // The line clock fitted from the sync pulses: where line 0 starts (ms) and the
+    // line period (ms). Ported from GridTracker2's sstvFit/sstvLineStart.
+    private var clockIntercept: Double = 0
+    private var clockPeriod: Double = 150
+    private var linePoints: [(line: Double, start: Double, weight: Double)] = []
     private var image = [UInt8](repeating: 0, count: 320 * 240 * 4)
     private var luminance = [Float](repeating: 0, count: 320 * 240)
     private var redDifference = [Float](repeating: 128, count: 320 * 240)
@@ -74,7 +77,8 @@ final class Robot36Decoder: ReceiveModem {
         pictureStartedAt = .now
         decodedLines = 0
         senderOffset = 0
-        linePeriodFrames = 150
+        clockIntercept = 0
+        clockPeriod = 150
         linePoints.removeAll(keepingCapacity: true)
         image = [UInt8](repeating: 0, count: image.count)
         luminance = [Float](repeating: 0, count: luminance.count)
@@ -196,13 +200,19 @@ final class Robot36Decoder: ReceiveModem {
     }
 
     private func frequency(at frame: Int64) -> Float {
-        guard frame >= 0, frameCount - frame < Int64(frameRingSize) else { return 0 }
-        return frequencyRing[Int(frame % Int64(frameRingSize))]
+        guard frame >= 0, frameCount > 0 else { return 0 }
+        // A frame not heard yet takes the newest reading rather than a stale or zero
+        // one (a zero chroma would paint the line green).
+        let clamped = min(frame, frameCount - 1)
+        guard frameCount - clamped < Int64(frameRingSize) else { return 0 }
+        return frequencyRing[Int(clamped % Int64(frameRingSize))]
     }
 
     private func syncFrequency(at frame: Int64) -> Float {
-        guard frame >= 0, frameCount - frame < Int64(frameRingSize) else { return 0 }
-        return syncFrequencyRing[Int(frame % Int64(frameRingSize))]
+        guard frame >= 0, frameCount > 0 else { return 0 }
+        let clamped = min(frame, frameCount - 1)
+        guard frameCount - clamped < Int64(frameRingSize) else { return 0 }
+        return syncFrequencyRing[Int(clamped % Int64(frameRingSize))]
     }
 
     private func medianFrequency(from start: Int64, to end: Int64, stride: Int64 = 5) -> Float {
@@ -272,7 +282,8 @@ final class Robot36Decoder: ReceiveModem {
         senderOffset = vis.shift
         pictureStartedAt = .now.addingTimeInterval(-0.91)
         decodedLines = 0
-        linePeriodFrames = 150
+        clockIntercept = Double(pictureStartFrame)
+        clockPeriod = 150
         linePoints.removeAll(keepingCapacity: true)
         image = [UInt8](repeating: 0, count: image.count)
         luminance = [Float](repeating: 0, count: luminance.count)
@@ -287,23 +298,29 @@ final class Robot36Decoder: ReceiveModem {
     private func decodeReadyLines(through frame: Int64, events: inout [ReceiveEvent]) {
         guard let id = pictureID else { return }
         while decodedLines < 240 {
-            let lineStart = estimatedLineStart(decodedLines)
-            guard frame >= Int64(lineStart.rounded(.up)) + 150 else { break }
-            let syncEnd = findSyncEnd(near: lineStart)
-            if let syncEnd {
-                let observedSync = medianSyncFrequency(from: Int64(syncEnd - 8), to: Int64(syncEnd - 2))
+            let estimate = lineStart(for: decodedLines)
+            // Wait until the whole line's audio plus the sync search window has been
+            // heard, so the chroma never reads samples that have not arrived yet (a
+            // stale or zero reading there paints the line green).
+            guard frame >= Int64(estimate.rounded(.down)) + 168 else { break }
+
+            let expectedSyncEnd = estimate + 9 * (clockPeriod / 150)
+            var start = estimate
+            if let found = findSyncEnd(expectedSyncEnd: expectedSyncEnd) {
+                let observedSync = medianSyncFrequency(from: Int64(found.end - 8), to: Int64(found.end - 2))
                 if observedSync > 0 {
                     let correction = max(-25, min(25, (observedSync - 1200 - senderOffset) * 0.5))
                     senderOffset += correction
                 }
-                linePoints.append((Double(decodedLines), syncEnd - 9))
-                fitLineClock()
+                linePoints.append((line: Double(decodedLines), start: found.end - 9, weight: found.clarity))
+                fitClock()
+                start = found.end - 9
             }
-            let adjustedStart = syncEnd.map { $0 - 9 } ?? lineStart
-            decodeLine(decodedLines, start: adjustedStart)
+
+            decodeLine(decodedLines, start: start)
             if decodedLines % 2 == 1 {
                 let firstRow = decodedLines - 1
-                paintPair(firstRow)
+                paintRows(firstRow, firstRow + 2)
                 let bytes = Data(image[(firstRow * 320 * 4)..<((firstRow + 2) * 320 * 4)])
                 events.append(.pictureRows(id: id, from: firstRow, count: 2, rgba: bytes))
             }
@@ -312,6 +329,9 @@ final class Robot36Decoder: ReceiveModem {
             if decodedLines.isMultiple(of: 12) { events.append(.status(latestStatus)) }
         }
         if decodedLines == 240 {
+            // Redraw everything with the final line clock (the sender's rate, drift
+            // and Doppler corrected), as GridTracker2 does.
+            redrawPicture()
             let picture = RadioPicture(startedAt: pictureStartedAt, rgba: Data(image), complete: true, frequencyOffsetHz: Int(senderOffset.rounded()))
             events.append(.pictureFinished(picture))
             events.append(.status(.complete("Robot 36 picture complete")))
@@ -320,53 +340,95 @@ final class Robot36Decoder: ReceiveModem {
         }
     }
 
-    private func estimatedLineStart(_ line: Int) -> Double {
-        guard linePoints.count >= 2 else { return Double(pictureStartFrame) + Double(line) * linePeriodFrames }
-        let count = Double(linePoints.count)
-        let meanX = linePoints.reduce(0) { $0 + $1.0 } / count
-        let meanY = linePoints.reduce(0) { $0 + $1.1 } / count
-        let numerator = linePoints.reduce(0) { $0 + ($1.0 - meanX) * ($1.1 - meanY) }
-        let denominator = linePoints.reduce(0) { $0 + pow($1.0 - meanX, 2) }
-        guard denominator > 0 else { return Double(pictureStartFrame) + Double(line) * linePeriodFrames }
-        linePeriodFrames = max(149.1, min(150.9, numerator / denominator))
-        let intercept = meanY - linePeriodFrames * meanX
-        return intercept + linePeriodFrames * Double(line)
+    /// The start of line `line`, in milliseconds, by the fitted clock.
+    private func lineStart(for line: Int) -> Double {
+        if linePoints.isEmpty { return Double(pictureStartFrame) + Double(line) * 150 }
+        return clockIntercept + clockPeriod * Double(line)
     }
 
-    private func fitLineClock() {
+    /// Fits the line clock to the measured sync pulses (GridTracker2's sstvFit): the
+    /// nominal period until three points, then a weighted least squares with the
+    /// points far off the fit dropped, and the rate kept within 0.6% of nominal.
+    private func fitClock() {
+        guard !linePoints.isEmpty else { return }
+        var points = linePoints
+        let nominal = 150.0
+        for _ in 0..<3 {
+            let a: Double
+            let b: Double
+            if points.count < 3 {
+                b = nominal
+                a = points.reduce(0.0) { $0 + ($1.start - b * $1.line) } / Double(points.count)
+            } else {
+                var sw = 0.0, sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0
+                for p in points {
+                    sw += p.weight
+                    sx += p.weight * p.line
+                    sy += p.weight * p.start
+                    sxx += p.weight * p.line * p.line
+                    sxy += p.weight * p.line * p.start
+                }
+                let den = sw * sxx - sx * sx
+                var slope = den > 0 ? (sw * sxy - sx * sy) / den : nominal
+                slope = max(nominal * 0.994, min(nominal * 1.006, slope))
+                b = slope
+                a = (sy - b * sx) / sw
+            }
+            clockIntercept = a
+            clockPeriod = b
+            let residuals = points.map { abs($0.start - a - b * $0.line) }
+            let rms = sqrt(residuals.reduce(0.0) { $0 + $1 * $1 } / Double(residuals.count))
+            let limit = max(2.0, 2.5 * rms)
+            var keep: [(line: Double, start: Double, weight: Double)] = []
+            for (index, point) in points.enumerated() where residuals[index] <= limit {
+                keep.append(point)
+            }
+            if keep.count == points.count || keep.count < 3 { break }
+            points = keep
+        }
         if linePoints.count > 64 { linePoints.removeFirst(linePoints.count - 64) }
     }
 
-    private func findSyncEnd(near lineStart: Double) -> Double? {
-        let expected = Int64(lineStart.rounded())
-        let threshold = 1500 + senderOffset - 150
-        var bestScore: Float = 0
-        var bestEnd: Int64?
-        for endOffset in 5...17 {
-            let end = expected + Int64(endOffset)
-            var lowBefore = 0
-            var lowAfter = 0
-            for ms in 1...8 where syncFrequency(at: end - Int64(ms)) < threshold { lowBefore += 1 }
-            for ms in 0...2 where syncFrequency(at: end + Int64(ms)) < threshold { lowAfter += 1 }
-            let score = Float(lowBefore) / 8 - Float(lowAfter) / 3
-            if score > bestScore { bestScore = score; bestEnd = end }
+    /// The sync pulse end nearest the expected one (GridTracker2's sstvSyncEnd): the
+    /// window widens while few pulses have been measured, then narrows.
+    private func findSyncEnd(expectedSyncEnd: Double) -> (end: Double, clarity: Double)? {
+        let spread = linePoints.count >= 8 ? 3.0 : (linePoints.isEmpty ? 15.0 : max(4.0, 9.0))
+        let before = 7
+        let after = 2
+        let edge = 1500 + senderOffset - 150
+        let first = Int64((expectedSyncEnd - spread).rounded())
+        let last = Int64((expectedSyncEnd + spread).rounded())
+        guard last > first else { return nil }
+        var best: Double = -1
+        var bestAt = Int64(expectedSyncEnd.rounded())
+        for e in first...last {
+            var high = 0
+            var low = 0
+            for i in (e - Int64(before))..<e where syncFrequency(at: i) < edge { high += 1 }
+            for i in e..<(e + Int64(after)) where syncFrequency(at: i) < edge { low += 1 }
+            let score = Double(high) / Double(before) - Double(low) / Double(after)
+            if score > best { best = score; bestAt = e }
         }
-        return bestScore > 0.3 ? Double(bestEnd!) : nil
+        return best > 0.3 ? (Double(bestAt), best) : nil
     }
 
     private func decodeLine(_ line: Int, start: Double) {
+        let scale = clockPeriod / 150
         let base = line * 320
-        let luminanceStart = start + 12
+        let luminanceStart = start + 12 * scale
+        let luminancePixel = 88 * scale / 320
         for x in 0..<320 {
-            let frame = Int64((luminanceStart + (Double(x) + 0.5) * 88 / 320).rounded())
+            let frame = Int64((luminanceStart + (Double(x) + 0.5) * luminancePixel).rounded())
             luminance[base + x] = level(frequency(at: frame))
         }
-        let separator = medianSyncFrequency(from: Int64(start + 101), to: Int64(start + 104)) - senderOffset
+        let separator = medianSyncFrequency(from: Int64((start + 101 * scale).rounded()),
+                                            to: Int64((start + 104 * scale).rounded())) - senderOffset
         let isRed = separator < 1900
-        let chromaStart = start + 106
+        let chromaStart = start + 106 * scale
+        let chromaPixel = 44 * scale / 320
         let pairBase = (line / 2) * 2 * 320
         for x in 0..<320 {
-            let frame = Int64((chromaStart + (Double(x) + 0.5) * 44 / 320).rounded())
+            let frame = Int64((chromaStart + (Double(x) + 0.5) * chromaPixel).rounded())
             let value = level(frequency(at: frame))
             if isRed {
                 redDifference[pairBase + x] = value
@@ -378,12 +440,23 @@ final class Robot36Decoder: ReceiveModem {
         }
     }
 
+    /// Re-reads every line with the final clock and repaints it (the reference redraws
+    /// the picture as the line rate improves).
+    private func redrawPicture() {
+        guard decodedLines > 0 else { return }
+        fitClock()
+        for y in 0..<decodedLines {
+            decodeLine(y, start: lineStart(for: y))
+        }
+        paintRows(0, decodedLines - (decodedLines % 2))
+    }
+
     private func level(_ frequency: Float) -> Float {
         min(255, max(0, (frequency - 1500 - senderOffset) * 255 / 800))
     }
 
-    private func paintPair(_ firstRow: Int) {
-        for row in firstRow..<(firstRow + 2) {
+    private func paintRows(_ from: Int, _ to: Int) {
+        for row in from..<to {
             for x in 0..<320 {
                 let index = row * 320 + x
                 let y = luminance[index]
