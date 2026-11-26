@@ -138,7 +138,7 @@ enum FT8Message {
         var c6: [Character] = [" ", " ", " ", " ", " ", " "]
         if callsign.hasPrefix("3DA0") && length > 4 && length <= 7 {
             c6 = Array("3D0" + callsign.dropFirst(4).prefix(3)).map { $0 }
-            for i in c6.count..<6 { c6.append(" ") }
+            for _ in c6.count..<6 { c6.append(" ") }
         } else if callsign.hasPrefix("3X") && length >= 3 && isLetter(chars[2]) && length <= 7 {
             c6[0] = "Q"
             let rest = Array(callsign.dropFirst(2))

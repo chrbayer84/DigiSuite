@@ -32,6 +32,7 @@ final class FT8Decoder: ReceiveModem {
     private var decodedSlots: Set<Double> = []
 
     init() {
+        let fftSize = self.fftSize
         fftSetup = vDSP_create_fftsetup(vDSP_Length(log2(Double(fftSize))), FFTRadix(kFFTRadix2))!
         window = (0..<fftSize).map {
             Float(0.5 - 0.5 * cos(2 * .pi * (Double($0) + 0.5) / Double(fftSize)))
