@@ -158,15 +158,21 @@ final class RadioModemViewModel: ObservableObject {
     }
 
     /// Tapping a decoded message fills the DX callsign and report, then shows Transmit.
+    /// The state changes and tab switch run without animation so the tab transition
+    /// does not animate simultaneously with the Transmit form's layout change.
     func prepareReply(to message: DecodedText) {
-        if let dx = Self.extractDXCallsign(from: message.text, myCall: callsign) {
-            dxCallsign = dx
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if let dx = Self.extractDXCallsign(from: message.text, myCall: callsign) {
+                dxCallsign = dx
+            }
+            if let snr = message.snr {
+                report = String(format: "%+03d", Int32(clamping: snr))
+            }
+            txMessageNumber = 2
+            selectedTab = 1
         }
-        if let snr = message.snr {
-            report = String(format: "%+03d", Int32(clamping: snr))
-        }
-        txMessageNumber = 2
-        selectedTab = 1
     }
 
     static func extractDXCallsign(from text: String, myCall: String) -> String? {
@@ -602,6 +608,9 @@ private struct RadioButtonLabel: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .shadow(color: isActive ? color.opacity(0.8) : .clear, radius: isActive ? 6 : 0)
+            // Change state instantly; animating the label under an ambient animation
+            // (e.g. a tab transition) makes UIKit log layout "decomposition" warnings.
+            .animation(nil, value: isActive)
     }
 }
 

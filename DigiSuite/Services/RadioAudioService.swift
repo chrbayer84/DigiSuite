@@ -243,6 +243,7 @@ final class RadioAudioPlayer {
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
     private let queue = radioAudioEngineQueue
+    private var configuredFormat: AVAudioFormat?
 
     /// Plays mono payload audio on the left stereo channel. When `rightToneHz` is
     /// non-nil, a sine tone at that frequency is generated on the right channel as a
@@ -274,11 +275,19 @@ final class RadioAudioPlayer {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default, options: [.allowBluetoothHFP])
         try session.setActive(true)
-        engine.reset()
-        engine.attach(player)
-        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate,
-                                   channels: 2, interleaved: false)!
-        engine.connect(player, to: engine.mainMixerNode, format: format)
+        // Attach and connect the player node once; reconnecting (or resetting the
+        // engine) on every transmission drops the audio unit's I/O handlers, which
+        // CoreAudio logs as "cannot add handler to 0 from 0".
+        if configuredFormat?.sampleRate != sampleRate {
+            engine.stop()
+            if configuredFormat != nil { engine.disconnectNodeOutput(player) }
+            if !engine.attachedNodes.contains(player) { engine.attach(player) }
+            let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate,
+                                       channels: 2, interleaved: false)!
+            engine.connect(player, to: engine.mainMixerNode, format: format)
+            configuredFormat = format
+        }
+        let format = configuredFormat!
         let frameCount = left.count
         let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount))!
         buffer.frameLength = AVAudioFrameCount(frameCount)
@@ -290,7 +299,7 @@ final class RadioAudioPlayer {
             }
         }
         engine.prepare()
-        try engine.start()
+        if !engine.isRunning { try engine.start() }
         player.scheduleBuffer(buffer) { [weak self] in
             DispatchQueue.main.async { completion() }
             self?.queue.async { self?.teardown() }
@@ -301,6 +310,8 @@ final class RadioAudioPlayer {
     private func teardown() {
         player.stop()
         engine.stop()
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        // Leave the session active so transmit/receive transitions do not toggle the
+        // session's active state back and forth (the simulator logs an activation
+        // warning on each such toggle).
     }
 }
