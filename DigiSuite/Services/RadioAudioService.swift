@@ -272,8 +272,10 @@ final class RadioAudioPlayer {
             DispatchQueue.main.async { completion() }
             return
         }
+        // .allowBluetoothHFP is only valid for recording-capable categories; with
+        // .playback it makes setCategory fail with OSStatus -50 on a device.
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default, options: [.allowBluetoothHFP])
+        try session.setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP])
         try session.setActive(true)
         // Attach and connect the player node once; reconnecting (or resetting the
         // engine) on every transmission drops the audio unit's I/O handlers, which
