@@ -155,6 +155,7 @@ final class RadioAudioCaptureService {
         // constant-envelope FSK and FM modem tones enough to defeat decoding on a
         // device (the simulator passes samples through unprocessed). HFP is dropped
         // because it forces a narrowband voice route that destroys modem audio.
+        try session.setActive(false)
         try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
         try session.setActive(true)
         let input = engine.inputNode
@@ -280,10 +281,13 @@ final class RadioAudioPlayer {
             DispatchQueue.main.async { completion() }
             return
         }
-        // .allowBluetoothHFP is only valid for recording-capable categories; with
-        // .playback it makes setCategory fail with OSStatus -50 on a device.
+        // No Bluetooth options are valid with the .playback category: both
+        // .allowBluetoothHFP and .allowBluetoothA2DP make setCategory fail with
+        // OSStatus -50 (paramErr) on a device. Deactivate first so the category
+        // change never happens while the session is still active.
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP])
+        try session.setActive(false)
+        try session.setCategory(.playback, mode: .default)
         try session.setActive(true)
         // Attach and connect the player node once; reconnecting (or resetting the
         // engine) on every transmission drops the audio unit's I/O handlers, which
@@ -320,8 +324,8 @@ final class RadioAudioPlayer {
     private func teardown() {
         player.stop()
         engine.stop()
-        // Leave the session active so transmit/receive transitions do not toggle the
-        // session's active state back and forth (the simulator logs an activation
-        // warning on each such toggle).
+        // Release the session so the next category change (receive or transmit) never
+        // runs while it is still active, which would fail with OSStatus -50.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
