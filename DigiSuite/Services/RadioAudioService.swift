@@ -150,7 +150,12 @@ final class RadioAudioCaptureService {
     private func startEngine() throws {
         guard !running else { return }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothHFP, .defaultToSpeaker])
+        // .measurement disables the AGC/echo-cancellation/voice processing that the
+        // default mode applies to the microphone, which otherwise distorts the
+        // constant-envelope FSK and FM modem tones enough to defeat decoding on a
+        // device (the simulator passes samples through unprocessed). HFP is dropped
+        // because it forces a narrowband voice route that destroys modem audio.
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
         try session.setActive(true)
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
@@ -158,6 +163,9 @@ final class RadioAudioCaptureService {
             throw AudioServiceError.noInput
         }
         inputRate = format.sampleRate
+        #if DEBUG
+        print("[DigiSuite] input route=\(session.currentRoute.inputs.first?.portName ?? "?") rate=\(format.sampleRate) ch=\(format.channelCount) interleaved=\(format.isInterleaved) common=\(format.commonFormat.rawValue)")
+        #endif
         ring.clear()
         resampler.reset(sourceRate: inputRate)
         totalOutputSamples = 0

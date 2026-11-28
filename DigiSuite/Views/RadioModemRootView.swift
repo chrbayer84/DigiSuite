@@ -100,7 +100,17 @@ final class RadioModemViewModel: ObservableObject {
     @Published var status: ModemStatus = .idle
     @Published var listening = false
     @Published var transmitting = false
-    @Published var selectedMode: RadioModeID = .robot36
+    @Published var selectedMode: RadioModeID = .robot36 {
+        didSet {
+            guard oldValue != selectedMode else { return }
+            // Swap the pipeline decoder so a mode change made while listening takes
+            // effect immediately instead of leaving the previous modem in place.
+            receivePipeline.setMode(selectedMode)
+            if listening {
+                clearReceive()
+            }
+        }
+    }
     @Published var liveImage: UIImage?
     @Published private(set) var pictureOffsetHz = 0
     @Published var waterfallRows: [[Float]] = []
