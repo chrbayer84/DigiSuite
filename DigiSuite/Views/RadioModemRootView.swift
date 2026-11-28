@@ -6,8 +6,6 @@ import SwiftUI
 import UIKit
 
 struct TextOverlayConfig: Equatable {
-    var callsign = ""
-    var gridsquare = ""
     var message = ""
     var color: Color = .white
     var fontName = "Menlo"
@@ -320,7 +318,8 @@ final class RadioModemViewModel: ObservableObject {
     func transmit(image: UIImage, overlay: TextOverlayConfig) {
         guard selectedMode == .robot36, !transmitting else { return }
         if listening { stopReceive() }
-        guard let rgba = Self.overlayRGBA(base: image, config: overlay) else {
+        guard let rgba = Self.overlayRGBA(base: image, config: overlay,
+                                          callsign: callsign, gridsquare: gridsquare) else {
             errorMessage = "Could not prepare the selected image for Robot 36."
             return
         }
@@ -452,11 +451,12 @@ final class RadioModemViewModel: ObservableObject {
 
     /// Composes the transmit image with the configured overlay text, returning
     /// Robot 36-sized RGBA bytes.
-    private static func overlayRGBA(base: UIImage, config: TextOverlayConfig) -> Data? {
+    private static func overlayRGBA(base: UIImage, config: TextOverlayConfig,
+                                    callsign rawCallsign: String, gridsquare rawGridsquare: String) -> Data? {
         let width = 320
         let height = 240
-        let callsign = config.callsign.trimmingCharacters(in: .whitespaces)
-        let gridsquare = config.gridsquare.trimmingCharacters(in: .whitespaces)
+        let callsign = rawCallsign.trimmingCharacters(in: .whitespaces)
+        let gridsquare = rawGridsquare.trimmingCharacters(in: .whitespaces)
         let message = config.message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !callsign.isEmpty || !gridsquare.isEmpty || !message.isEmpty else {
             return rgbaData(base, width: width, height: height)
@@ -512,8 +512,10 @@ final class RadioModemViewModel: ObservableObject {
         return rgbaData(composed, width: width, height: height)
     }
 
-    static func overlayPreview(base: UIImage, config: TextOverlayConfig) -> UIImage? {
-        guard let rgba = overlayRGBA(base: base, config: config) else { return nil }
+    static func overlayPreview(base: UIImage, config: TextOverlayConfig,
+                              callsign: String, gridsquare: String) -> UIImage? {
+        guard let rgba = overlayRGBA(base: base, config: config,
+                                    callsign: callsign, gridsquare: gridsquare) else { return nil }
         return makeImage(rgba, width: 320, height: 240)
     }
 
@@ -814,7 +816,8 @@ private struct TransmitTab: View {
 
     private var preview: UIImage? {
         guard let image else { return nil }
-        return RadioModemViewModel.overlayPreview(base: image, config: overlay)
+        return RadioModemViewModel.overlayPreview(base: image, config: overlay,
+                                                 callsign: model.callsign, gridsquare: model.gridsquare)
     }
 
     var body: some View {
@@ -861,8 +864,6 @@ private struct TransmitTab: View {
                     }
                     Section {
                         Button {
-                            overlay.callsign = model.callsign
-                            overlay.gridsquare = model.gridsquare
                             showOverlayEditor = true
                         } label: {
                             Label("Edit overlay", systemImage: "textformat")
@@ -908,12 +909,8 @@ private struct TransmitTab: View {
                     } catch { }
                 }
             }
-            .onAppear {
-                if overlay.callsign.isEmpty { overlay.callsign = model.callsign }
-                if overlay.gridsquare.isEmpty { overlay.gridsquare = model.gridsquare }
-            }
             .sheet(isPresented: $showOverlayEditor) {
-                OverlayEditorView(config: $overlay, base: image)
+                OverlayEditorView(config: $overlay, base: image, model: model)
             }
         }
     }
@@ -922,20 +919,36 @@ private struct TransmitTab: View {
 private struct OverlayEditorView: View {
     @Binding var config: TextOverlayConfig
     let base: UIImage?
+    @ObservedObject var model: RadioModemViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Text") {
-                    TextField("Callsign", text: $config.callsign)
+                    TextField("Callsign", text: $model.callsign)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                    TextField("Grid square", text: $config.gridsquare)
+                    TextField("Grid square", text: $model.gridsquare)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
+                    Button {
+                        model.useCurrentLocation()
+                    } label: {
+                        if model.isResolvingLocation {
+                            Label("Locating…", systemImage: "location")
+                        } else {
+                            Label("Use current location", systemImage: "location")
+                        }
+                    }
+                    .disabled(model.isResolvingLocation)
+                    if let locationError = model.locationError {
+                        Text(locationError).font(.caption).foregroundStyle(.red)
+                    }
                     TextField("Message", text: $config.message, axis: .vertical)
                         .lineLimit(2...5)
+                    Text("Callsign and grid square are shared across all modes.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Appearance") {
                     ColorPicker("Color", selection: $config.color, supportsOpacity: false)
@@ -960,7 +973,8 @@ private struct OverlayEditorView: View {
                 }
                 Section("Position") {
                     if let base {
-                        OverlayPreview(base: base, config: $config)
+                        OverlayPreview(base: base, config: $config,
+                                       callsign: model.callsign, gridsquare: model.gridsquare)
                             .frame(height: 220)
                     } else {
                         Text("Choose an image first.").foregroundStyle(.secondary)
@@ -983,9 +997,12 @@ private struct OverlayEditorView: View {
 private struct OverlayPreview: View {
     let base: UIImage
     @Binding var config: TextOverlayConfig
+    let callsign: String
+    let gridsquare: String
 
     var body: some View {
-        let preview = RadioModemViewModel.overlayPreview(base: base, config: config) ?? base
+        let preview = RadioModemViewModel.overlayPreview(base: base, config: config,
+                                                        callsign: callsign, gridsquare: gridsquare) ?? base
         return GeometryReader { geo in
             Image(uiImage: preview)
                 .resizable()
