@@ -29,6 +29,16 @@
 		B1234567890ABCDEF1234642 /* FT8Encoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1234567890ABCDEF1234641 /* FT8Encoder.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		B1234567890ABCDEF1234620 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1234567890ABCDEF123455B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1234567890ABCDEF1234562;
+			remoteInfo = DigiSuite;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		A1234567890ABCDEF1234563 /* DigiSuite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DigiSuite.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1234567890ABCDEF1234566 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -74,12 +84,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		80829B9930B8684B00052871 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				B1234567890ABCDEF1234631 /* XCTest.framework */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		A1234567890ABCDEF1234559 = {
 			isa = PBXGroup;
 			children = (
 				A1234567890ABCDEF123455A /* DigiSuite */,
 				B1234567890ABCDEF1234629 /* DigiSuiteTests */,
 				A1234567890ABCDEF1234564 /* Products */,
+				80829B9930B8684B00052871 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -107,14 +126,6 @@
 				B1234567890ABCDEF1234619 /* DigiSuiteTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		B1234567890ABCDEF1234629 /* DigiSuiteTests */ = {
-			isa = PBXGroup;
-			children = (
-				B1234567890ABCDEF1234618 /* RadioModemSignalTests.swift */,
-			);
-			path = DigiSuiteTests;
 			sourceTree = "<group>";
 		};
 		A1234567890ABCDEF1234584 /* Models */ = {
@@ -150,6 +161,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		B1234567890ABCDEF1234629 /* DigiSuiteTests */ = {
+			isa = PBXGroup;
+			children = (
+				B1234567890ABCDEF1234618 /* RadioModemSignalTests.swift */,
+			);
+			path = DigiSuiteTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -178,7 +197,8 @@
 				B1234567890ABCDEF1234622 /* Frameworks */,
 				B1234567890ABCDEF1234623 /* Resources */,
 			);
-			buildRules = ();
+			buildRules = (
+			);
 			dependencies = (
 				B1234567890ABCDEF1234621 /* PBXTargetDependency */,
 			);
@@ -189,19 +209,6 @@
 		};
 /* End PBXNativeTarget section */
 
-		B1234567890ABCDEF1234620 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A1234567890ABCDEF123455B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A1234567890ABCDEF1234562;
-			remoteInfo = DigiSuite;
-		};
-		B1234567890ABCDEF1234621 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A1234567890ABCDEF1234562 /* DigiSuite */;
-			targetProxy = B1234567890ABCDEF1234620 /* PBXContainerItemProxy */;
-		};
-
 /* Begin PBXProject section */
 		A1234567890ABCDEF123455B /* Project object */ = {
 			isa = PBXProject;
@@ -210,7 +217,7 @@
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
-				A1234567890ABCDEF1234562 = {
+					A1234567890ABCDEF1234562 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -248,7 +255,8 @@
 		B1234567890ABCDEF1234623 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -285,6 +293,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B1234567890ABCDEF1234621 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1234567890ABCDEF1234562 /* DigiSuite */;
+			targetProxy = B1234567890ABCDEF1234620 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		A1234567890ABCDEF123456C /* Main.storyboard */ = {
@@ -434,11 +450,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = VRRTAP3C2B;
+				DEVELOPMENT_TEAM = VR3HG6C7W9;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DigiSuite/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DigiSuite;
@@ -457,7 +472,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuite;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "DigiSuite Apple Store";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -469,11 +483,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = VRRTAP3C2B;
+				DEVELOPMENT_TEAM = VR3HG6C7W9;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DigiSuite/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DigiSuite;
@@ -492,7 +505,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuite;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "DigiSuite Apple Store";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -506,7 +518,11 @@
 				CODE_SIGNING_ALLOWED = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuiteTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -523,7 +539,11 @@
 				CODE_SIGNING_ALLOWED = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.chrbayer84.DigiSuiteTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
