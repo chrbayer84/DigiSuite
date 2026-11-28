@@ -644,7 +644,7 @@ private struct ReceiveTab: View {
                     Button {
                         model.listening ? model.stopReceive() : model.startReceive()
                     } label: {
-                        RadioButtonLabel(text: "RX", isActive: model.listening, color: .green)
+                        RadioButtonLabel(text: model.listening ? "Stop" : "RX", isActive: model.listening, color: .green)
                     }
                     .buttonStyle(.plain)
                     Button("Clear", systemImage: "trash") { model.clearReceive() }
@@ -892,7 +892,7 @@ private struct TransmitTab: View {
                             model.transmit(image: image, overlay: overlay)
                         }
                     } label: {
-                        RadioButtonLabel(text: "TX", isActive: model.transmitting, color: .red, fillWidth: true)
+                        RadioButtonLabel(text: model.transmitting ? "Stop" : "TX", isActive: model.transmitting, color: .red, fillWidth: true)
                     }
                     .buttonStyle(.plain)
                     .disabled(!model.transmitting && (
